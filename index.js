@@ -5586,14 +5586,11 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       is_return_ticket:
         formData.is_return_ticket === true ||
         formData.is_return_ticket === "true",
-      // Only set air_travel_type for Air Ticket leads
+      // Only set air_travel_type for Air Ticket leads (omit if leads table has no such column)
       ...(services && services.includes("Air Ticket") && air_travel_type
         ? { air_travel_type: air_travel_type }
         : {}),
-      budget: budget || null, // Store budget as string (Budget Friendly, Comfort Collection, etc.) or null
-      visa_type: visa_type || null,
-      passport_service_type: passport_service_type || null,
-      passport_city_of_residence: passport_city_of_residence || null,
+      // Omit budget, visa_type, passport_* – not in academy leads schema
     };
 
     const { data: createdLead, error: leadError } = await supabase
