@@ -4569,35 +4569,121 @@ app.post("/api/lead/website", async (req, res) => {
       JSON.stringify(formData, null, 2)
     );
 
-    // Robustly extract fields, checking for multiple possible names (e.g., 'name' or 'Name')
-    const name = formData.name || formData.Name;
+    // Academy form: extract all supported fields (Elementor may send 'name' or 'Name', etc.)
+    const name =
+      formData.name ||
+      formData.Name ||
+      [formData.first_name, formData.last_name].filter(Boolean).join(" ");
     const phone = formData.phone || formData.Phone;
-    const travel_date =
-      formData.date ||
-      formData.Date ||
-      formData["Date of Travel"] ||
-      formData.date_of_travel;
     const enquiry =
       formData.enquiry ||
       formData["Type of Enquiry?"] ||
       formData.type_of_enquiry;
     const nationality = formData.nationality || formData.Nationality;
     const email = formData.email || formData.Email;
-    const destination = formData.destination || formData.Destination;
 
-    // Other optional fields from the existing code
-    const { duration, starting_point, summary } = formData;
+    // Student/Customer optional fields
+    const first_name =
+      formData.first_name || formData["First Name"] || (name ? name.split(" ")[0] : null);
+    const last_name =
+      formData.last_name ||
+      formData["Last Name"] ||
+      (name && name.split(" ").length > 1 ? name.split(" ").slice(1).join(" ") : null);
+    const gender = formData.gender || formData.Gender || null;
+    const date_of_birth = formData.date_of_birth || formData["Date of Birth"] || formData.dob || null;
+    const aadhaar_number =
+      formData.aadhaar_number || formData["Aadhaar Number"] || formData.aadhaar || null;
+    const full_name_as_per_aadhaar =
+      formData.full_name_as_per_aadhaar || formData["Full Name as per Aadhaar"] || null;
+    const alternate_mobile =
+      formData.alternate_mobile ||
+      formData["Alternate Mobile Number"] ||
+      formData.alternate_mobile_number ||
+      null;
+    const address_for_communication =
+      formData.address_for_communication ||
+      formData["Address for Communication"] ||
+      formData.address ||
+      formData.Address ||
+      null;
+    const city = formData.city || formData.City || null;
+    const state = formData.state || formData.State || null;
+    const pincode = formData.pincode || formData.Pincode || null;
+    const avatar_url = formData.avatar_url || formData.avatar || formData.photo_url || null;
 
-    // Core fields required
-    if (!name || !phone || !travel_date) {
-      console.error("Validation failed: Missing name, phone, or travel_date.", {
+    // Alternate contact (flat or nested)
+    let alternate_contact = formData.alternate_contact || null;
+    if (!alternate_contact && (formData.alternate_contact_name || formData.contact_name || formData["Contact Name"])) {
+      alternate_contact = {
+        contact_name:
+          formData.alternate_contact_name || formData["Contact Name"] || formData.contact_name || "",
+        relationship_with_student:
+          formData.relationship_with_student ||
+          formData["Relationship with Student"] ||
+          formData.relationship ||
+          "",
+        contact_mobile:
+          formData.alternate_contact_mobile ||
+          formData["Contact Mobile Number"] ||
+          formData.contact_mobile ||
+          "",
+        contact_email:
+          formData.alternate_contact_email ||
+          formData["Contact Email ID"] ||
+          formData.contact_email ||
+          "",
+      };
+      if (
+        !alternate_contact.contact_name &&
+        !alternate_contact.contact_mobile &&
+        !alternate_contact.contact_email
+      ) {
+        alternate_contact = null;
+      }
+    }
+
+    // Scholarship eligibility: array or comma-separated string
+    let scholarship_eligibility = formData.scholarship_eligibility || formData["Scholarship Eligibility"] || null;
+    if (scholarship_eligibility != null) {
+      if (Array.isArray(scholarship_eligibility)) {
+        scholarship_eligibility = scholarship_eligibility.filter(Boolean);
+      } else {
+        scholarship_eligibility = String(scholarship_eligibility)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+      }
+      if (scholarship_eligibility.length === 0) scholarship_eligibility = null;
+    }
+
+    // Lead optional fields
+    const lead_status =
+      formData.status || formData.lead_status || "Enquiry";
+    const source =
+      formData.source || formData.lead_source || null;
+    const staff_id = formData.staff_id || formData.assigned_staff_id || null;
+    const lead_type = formData.lead_type || formData["Lead Type"] || "Cold";
+    const priority = formData.priority || formData.Priority || "Low";
+    const note_text =
+      formData.notes ||
+      formData.note ||
+      formData["Notes"] ||
+      formData.remarks ||
+      null;
+
+    // Academy: required = (name or first_name+last_name), phone, enquiry
+    const hasName = (name && name.trim()) || (first_name && last_name);
+    if (!hasName || !phone || !enquiry) {
+      console.error("Validation failed: Missing name (or first_name+last_name), phone, or enquiry.", {
         name,
+        first_name,
+        last_name,
         phone,
-        travel_date,
+        enquiry,
       });
       return res.status(400).json({
         message:
-          "Missing required fields: name, phone, and a travel date (field ID: 'date' or 'Date of Travel') are required.",
+          "Missing required fields: name (or first_name and last_name), phone, and enquiry (Type of Enquiry) are required. Use field IDs: name, phone, enquiry.",
       });
     }
 
@@ -4693,10 +4779,23 @@ app.post("/api/lead/website", async (req, res) => {
         }
       }
 
-      // Update nationality if provided and missing
-      if (nationality && !customer.nationality) {
-        updateFields.nationality = nationality;
-      }
+      // Merge all provided customer/student fields (form overwrites missing or all, depending on use case)
+      if (nationality != null) updateFields.nationality = nationality;
+      if (email != null) updateFields.email = email;
+      if (gender != null) updateFields.gender = gender;
+      if (date_of_birth != null) updateFields.date_of_birth = date_of_birth;
+      if (aadhaar_number != null) updateFields.aadhaar_number = aadhaar_number;
+      if (full_name_as_per_aadhaar != null) updateFields.full_name_as_per_aadhaar = full_name_as_per_aadhaar;
+      if (alternate_mobile != null) updateFields.alternate_mobile = alternate_mobile;
+      if (address_for_communication != null) updateFields.address_for_communication = address_for_communication;
+      if (city != null) updateFields.city = city;
+      if (state != null) updateFields.state = state;
+      if (pincode != null) updateFields.pincode = pincode;
+      if (avatar_url != null) updateFields.avatar_url = avatar_url;
+      if (alternate_contact != null) updateFields.alternate_contact = alternate_contact;
+      if (scholarship_eligibility != null) updateFields.scholarship_eligibility = scholarship_eligibility;
+      if (first_name != null) updateFields.first_name = first_name;
+      if (last_name != null) updateFields.last_name = last_name;
 
       // Update customer if any fields need updating
       if (Object.keys(updateFields).length > 0) {
@@ -4711,26 +4810,38 @@ app.post("/api/lead/website", async (req, res) => {
         else customer = updatedCustomer;
       }
     } else {
-      const nameParts = name.split(" ");
-      const first_name = nameParts[0];
-      const last_name = nameParts.slice(1).join(" ") || first_name;
+      const fName = first_name || (name ? name.split(" ")[0] : "Website");
+      const lName = last_name || (name && name.split(" ").length > 1 ? name.split(" ").slice(1).join(" ") : "Customer");
+
+      const customerInsert = {
+        salutation: "Mr.",
+        first_name: fName,
+        last_name: lName,
+        email: email || null,
+        phone: phoneNormalized,
+        nationality: nationality || null,
+        username: `@${(fName + lName)
+          .toLowerCase()
+          .replace(/\s/g, "")}${Date.now().toString().slice(-4)}`,
+        avatar_url: avatar_url || `https://avatar.iran.liara.run/public/boy?username=${Date.now()}`,
+        date_added: new Date().toISOString(),
+        added_by_branch_id: targetBranchId,
+        gender: gender || null,
+        date_of_birth: date_of_birth || null,
+        aadhaar_number: aadhaar_number || null,
+        full_name_as_per_aadhaar: full_name_as_per_aadhaar || null,
+        alternate_mobile: alternate_mobile || null,
+        address_for_communication: address_for_communication || null,
+        city: city || null,
+        state: state || null,
+        pincode: pincode || null,
+        alternate_contact: alternate_contact || null,
+        scholarship_eligibility: scholarship_eligibility || null,
+      };
 
       const { data: newCustomer, error: createError } = await supabase
         .from("customers")
-        .insert({
-          salutation: "Mr.",
-          first_name,
-          last_name,
-          email: email || null,
-          phone: phoneNormalized, // Store in continuous format (no spaces): +917397670826
-          nationality: nationality || null,
-          username: `@${(first_name + last_name)
-            .toLowerCase()
-            .replace(/\s/g, "")}${Date.now().toString().slice(-4)}`,
-          avatar_url: `https://avatar.iran.liara.run/public/boy?username=${Date.now()}`,
-          date_added: new Date().toISOString(),
-          added_by_branch_id: targetBranchId,
-        })
+        .insert(customerInsert)
         .select()
         .single();
 
@@ -4738,138 +4849,21 @@ app.post("/api/lead/website", async (req, res) => {
       customer = newCustomer;
     }
 
-    const enquiryType = enquiry;
-
-    // Extract services array if provided, otherwise parse from enquiry
+    // Academy: services from enquiry (single or comma-separated)
     let services = formData.services || [];
-    let enquiryTypeForSummary = enquiryType;
-
-    // If services array is provided, use it directly
-    if (Array.isArray(services) && services.length > 0) {
-      // Services array is already provided, use it as-is
-      enquiryTypeForSummary = services.join(", ");
-    } else {
-      // No services array provided, parse from enquiry string
-      services = ["Tour Package"]; // Default to 'Tour Package' for "Other" or unrecognized
-      if (enquiryType) {
-        const enquiryLower = String(enquiryType).toLowerCase();
-        // Parse comma-separated services from enquiry
-        if (enquiryLower.includes(",")) {
-          services = enquiryType
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s.length > 0);
-        } else {
-          // Single service - parse as before
-          if (enquiryLower.includes("tour")) services = ["Tour Package"];
-          else if (enquiryLower.includes("visa")) services = ["Visa"];
-          else if (
-            enquiryLower.includes("air ticket") ||
-            enquiryLower.includes("flight")
-          )
-            services = ["Air Ticket"];
-          else if (
-            enquiryLower.includes("forex") ||
-            enquiryLower.includes("currency")
-          )
-            services = ["Forex"];
-          else if (enquiryLower.includes("passport")) services = ["Passport"];
-          else if (enquiryLower.includes("hotel")) services = ["Hotel"];
-          else if (enquiryLower.includes("transport")) services = ["Transport"];
-          else if (enquiryLower.includes("mice")) services = ["MICE"];
-          else if (enquiryLower.includes("insurance")) services = ["Insurance"];
-          // 'Other' will fall through to the default of 'Tour Package'
-        }
-      }
+    if (!Array.isArray(services) || services.length === 0) {
+      services = enquiry
+        ? (enquiry.includes(",")
+            ? enquiry.split(",").map((s) => s.trim()).filter(Boolean)
+            : [enquiry])
+        : [];
     }
 
-    // Parse passenger details from the form data
-    const adults =
-      parseInt(formData.adults, 10) ||
-      parseInt(formData.travelers, 10) ||
-      parseInt(formData.attendees, 10) ||
-      parseInt(formData.passengers, 10) ||
-      1;
-    const children = parseInt(formData.children, 10) || 0;
-    const babies = parseInt(formData.babies, 10) || 0;
+    const summary =
+      formData.summary ||
+      `Lead from website form regarding ${enquiry || "an enquiry"}.`;
 
-    // Handle child_ages - can be array or individual fields
-    let child_ages = [];
-    if (Array.isArray(formData.children_ages)) {
-      child_ages = formData.children_ages
-        .map((age) => parseInt(age, 10))
-        .filter((age) => !isNaN(age) && age >= 1 && age <= 18);
-    } else if (formData.children_ages) {
-      // Handle comma-separated or space-separated ages
-      child_ages = String(formData.children_ages)
-        .split(/[,\s]+/)
-        .map((age) => parseInt(age.trim(), 10))
-        .filter((age) => !isNaN(age) && age >= 1 && age <= 18);
-    } else {
-      // Try to find child_age_1, child_age_2, etc.
-      for (let i = 1; i <= children; i++) {
-        const ageField =
-          formData[`child_age_${i}`] || formData[`children_ages[${i - 1}]`];
-        if (ageField) {
-          const age = parseInt(ageField, 10);
-          if (!isNaN(age) && age >= 1 && age <= 18) child_ages.push(age);
-        }
-      }
-    }
-
-    const leadRequirements = {
-      adults: adults,
-      children: children,
-      babies: babies,
-      child_ages: child_ages,
-      hotelPreference: "No Preference",
-      stayPreference: "No Preference",
-      rooms: [
-        {
-          id: Date.now(),
-          adults: adults,
-          children: children,
-          child_ages: child_ages.length > 0 ? child_ages : undefined,
-        },
-      ],
-    };
-
-    // Extract service-specific fields
-    const {
-      is_flexible_dates,
-      is_return_ticket,
-      return_date,
-      visa_type,
-      visa_duration,
-      check_in_date,
-      check_out_date,
-      budget,
-      forex_currency_have,
-      forex_currency_required,
-      passport_service_type,
-      passport_city_of_residence,
-      passport_number,
-      passport_expiry_date,
-      tour_type,
-      tour_region,
-      insurance_type,
-      vehicle_type,
-      pickup_location,
-      dropoff_location,
-      event_type,
-      event_date,
-      venue_location,
-      attendees,
-      mice_requirements,
-      travelers,
-      passengers,
-      amount,
-      rooms,
-      hotel_stays,
-      hotel_destinations,
-      hotel_nights,
-      staff_id,
-    } = formData;
+    // staff_id already extracted above
 
     // Fetch staff information if staff_id is provided (for activity log)
     let staffForActivity = null;
@@ -4894,31 +4888,54 @@ app.post("/api/lead/website", async (req, res) => {
       }
     }
 
-    // 2. Create Lead
-    const leadSource = staff_id ? "Staff Link" : "website";
+    // 2. Create Lead (academy-only: enquiry, services, summary, status, source, lead_type, priority; optional notes)
+    const leadSourceValue =
+      source ||
+      (staff_id ? "Staff Link" : "website");
     const activityDescription = staffForActivity
-      ? `Lead created via website form (Staff Form) by ${staffForActivity.name} (Staff ID: ${staffForActivity.id}). Source: ${leadSource}.`
-      : `Lead created via website form. Source: ${leadSource}.`;
+      ? `Lead created via website form (Staff Form) by ${staffForActivity.name} (Staff ID: ${staffForActivity.id}).`
+      : "Lead created via website form.";
+
+    const allNotes = [];
+    if (note_text && String(note_text).trim()) {
+      allNotes.push({
+        id: Date.now(),
+        text: String(note_text).trim(),
+        date: new Date().toISOString(),
+        addedBy: {
+          id: 0,
+          user_id: "system_website_form",
+          name: "Website Form",
+          email: "form@system.local",
+          phone: "",
+          status: "Active",
+          role_id: 3,
+          branch_id: targetBranchId,
+          avatar_url: "",
+          activity_log: [],
+          destinations: "",
+          leads_missed: 0,
+          last_active_at: null,
+          leads_attended: 0,
+          on_leave_until: null,
+          last_response_at: null,
+          work_hours_today: 0,
+          avg_response_time: null,
+        },
+        mentions: [],
+      });
+    }
 
     const newLead = {
       customer_id: customer.id,
-      destination: destination || "N/A",
-      travel_date,
-      duration: duration || null,
-      status: "Enquiry",
-      priority: "Low",
-      lead_type: "Cold",
-      tour_type:
-        tour_type || (services.includes("Tour Package") ? "customized" : null),
-      tour_region: tour_region || null,
-      requirements: leadRequirements,
+      enquiry: enquiry || null,
+      status: lead_status || "Enquiry",
+      priority: priority || "Low",
+      lead_type: lead_type || "Cold",
+      requirements: {},
       services,
-      summary:
-        summary ||
-        `Lead from website form regarding ${
-          enquiryTypeForSummary || enquiryType || "an enquiry"
-        }.`,
-      notes: [],
+      summary,
+      notes: allNotes,
       activity: [
         {
           id: Date.now(),
@@ -4929,69 +4946,10 @@ app.post("/api/lead/website", async (req, res) => {
         },
       ],
       branch_ids: [targetBranchId],
-      source: leadSource,
+      source: leadSourceValue,
       created_at: new Date().toISOString(),
       last_updated: new Date().toISOString(),
-      // Service-specific fields
-      starting_point: starting_point || null,
-      is_flexible_dates:
-        is_flexible_dates === true ||
-        is_flexible_dates === "true" ||
-        is_flexible_dates === "yes",
-      is_return_ticket:
-        is_return_ticket === true ||
-        is_return_ticket === "true" ||
-        is_return_ticket === "yes",
-      return_date: return_date || null,
-      visa_type: visa_type || null,
-      visa_duration: visa_duration || null,
-      check_in_date: check_in_date || null,
-      check_out_date: check_out_date || null,
-      budget: budget
-        ? typeof budget === "string"
-          ? budget
-          : String(budget)
-        : null, // Store as text (supports both categories and numeric values)
-      forex_currency_have: forex_currency_have || null,
-      forex_currency_required: forex_currency_required || null,
-      passport_service_type: passport_service_type || null,
-      passport_city_of_residence: passport_city_of_residence || null,
-      passport_number: passport_number || null,
-      passport_expiry_date: passport_expiry_date || null,
-      // Transport fields
-      vehicle_type: vehicle_type || null,
-      pickup_location: pickup_location || null,
-      dropoff_location: dropoff_location || null,
-      passengers: passengers ? parseInt(passengers, 10) : null,
-      // MICE fields
-      event_type: event_type || null,
-      event_date: event_date || null,
-      venue_location: venue_location || null,
-      attendees: attendees ? parseInt(attendees, 10) : null,
-      mice_requirements: mice_requirements || null,
-      // Insurance fields
-      insurance_type: insurance_type || null,
-      travelers: travelers ? parseInt(travelers, 10) : null,
     };
-
-    // Add additional service-specific data to summary if needed (for fields not in lead table)
-    let serviceDetails = [];
-    if (services.includes("Passport")) {
-      if (formData.urgency) serviceDetails.push(`Urgency: ${formData.urgency}`);
-    }
-    if (services.includes("Hotel")) {
-      if (rooms) serviceDetails.push(`Rooms: ${rooms}`);
-      if (hotel_destinations)
-        serviceDetails.push(`Destinations: ${hotel_destinations}`);
-      if (hotel_nights) serviceDetails.push(`Nights: ${hotel_nights}`);
-    }
-    if (services.includes("Forex")) {
-      if (amount) serviceDetails.push(`Amount: ${amount}`);
-    }
-
-    if (serviceDetails.length > 0) {
-      newLead.summary += "\n\n" + serviceDetails.join("\n");
-    }
 
     const { data: createdLead, error: leadError } = await supabase
       .from("leads")
@@ -5081,7 +5039,10 @@ app.post("/api/lead/website", async (req, res) => {
 
     res
       .status(201)
-      .json({ message: "Lead created successfully.", lead: createdLead });
+      .json({
+        message: "Lead created successfully.",
+        lead: sanitizeLeadResponse(createdLead),
+      });
   } catch (error) {
     console.error("Error creating lead from website:", error);
     res
@@ -5291,6 +5252,32 @@ async function sendInvoiceWhatsappMessage(
     `[Invoice WhatsApp] ❌ Failed to send invoice WhatsApp message for #${invoice.invoice_number}`
   );
   return null;
+}
+
+// Strip travel/tourism fields from lead object for API responses (academy-only responses).
+const TRAVEL_LEAD_KEYS = [
+  "destination",
+  "starting_point",
+  "travel_date",
+  "duration",
+  "itinerary_id",
+  "itinerary_ids",
+  "tour_type",
+  "tour_region",
+];
+function sanitizeLeadResponse(lead) {
+  if (!lead || typeof lead !== "object") return lead;
+  const { ...rest } = lead;
+  TRAVEL_LEAD_KEYS.forEach((k) => delete rest[k]);
+  // Expose enquiry at top level from academy_data for consistency
+  const enquiry =
+    rest.enquiry ||
+    (rest.academy_data &&
+      typeof rest.academy_data === "object" &&
+      rest.academy_data.enquiry) ||
+    null;
+  if (enquiry != null) rest.enquiry = enquiry;
+  return rest;
 }
 
 // --- WHATSAPP LEAD ENDPOINT ---
@@ -5607,12 +5594,13 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     if (consultation_mode) academy_data.consultation_mode = consultation_mode;
     if (whatsapp_programme) academy_data.programme_applied_for = whatsapp_programme;
 
-    // 3. Create Lead – academy schema only (no travel/tourism columns)
+    // 3. Create Lead – academy schema only (enquiry + academy_data; no travel/tourism columns)
     const newLead = {
       customer_id: customer.id,
       status: "Enquiry",
       priority: "Low",
       lead_type: "Warm",
+      enquiry: enquiry || null,
       services: services || (enquiry ? [enquiry] : []),
       summary: summaryText,
       notes: allNotes,
@@ -5657,7 +5645,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
 
     res.status(201).json({
       message: "Lead created successfully from WhatsApp.",
-      lead: createdLead,
+      lead: sanitizeLeadResponse(createdLead),
     });
   } catch (error) {
     console.error("Error creating lead from WhatsApp:", error);
