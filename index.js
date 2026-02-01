@@ -1866,6 +1866,9 @@ app.post("/api/customers/bulk-delete", requireAuth, async (req, res) => {
       });
     }
 
+    // Remove whatsapp_messages that reference these customers (FK: whatsapp_messages_customer_id_fkey)
+    await supabase.from("whatsapp_messages").delete().in("customer_id", ids);
+
     const { error } = await supabase.from("customers").delete().in("id", ids);
     if (error) throw error;
 
