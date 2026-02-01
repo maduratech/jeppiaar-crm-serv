@@ -93,6 +93,8 @@ const ACADEMY_ALLOWED_PATTERNS = [
   /^\/api\/invoicing\/.+/, // create-link, send-whatsapp, etc.
   /^\/api\/razorpay-webhook$/,
   /^\/api\/feedback\/send$/,
+  /^\/api\/leads\/bulk-delete$/,
+  /^\/api\/customers\/bulk-delete$/,
 ];
 function academyAllowlist(req, res, next) {
   if (APP_MODE !== "academy") return next();
@@ -1779,6 +1781,102 @@ app.post("/api/settings/:key", requireAuth, async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// --- BULK DELETE (service role; bypasses RLS so super admin can delete) ---
+app.post("/api/leads/bulk-delete", requireAuth, async (req, res) => {
+  try {
+    const { leadIds } = req.body || {};
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "leadIds array is required and must not be empty." });
+    }
+    const ids = leadIds
+      .map((id) => Number(id))
+      .filter((n) => !Number.isNaN(n) && n > 0);
+    if (ids.length === 0) {
+      return res.status(400).json({ message: "Valid lead IDs are required." });
+    }
+
+    // Block if any lead has paid/partially paid invoice
+    const { data: blockingInvoices } = await supabase
+      .from("invoices")
+      .select("id, lead_id, invoice_number, status")
+      .in("lead_id", ids)
+      .in("status", ["PARTIALLY PAID", "PAID"]);
+    if (blockingInvoices && blockingInvoices.length > 0) {
+      return res.status(400).json({
+        message: `Cannot delete lead(s). Lead #${blockingInvoices[0].lead_id} has a paid/partially paid invoice (${blockingInvoices[0].invoice_number}). Please handle the invoice first.`,
+      });
+    }
+
+    // Cascade delete order: lead_costings, payments, invoices, lead_assignees, lead_suppliers, leads
+    await supabase.from("lead_costings").delete().in("lead_id", ids);
+    await supabase.from("payments").delete().in("lead_id", ids);
+    await supabase.from("invoices").delete().in("lead_id", ids);
+    await supabase.from("lead_assignees").delete().in("lead_id", ids);
+    await supabase.from("lead_suppliers").delete().in("lead_id", ids);
+    const { error: leadsError } = await supabase
+      .from("leads")
+      .delete()
+      .in("id", ids);
+    if (leadsError) throw leadsError;
+
+    return res.json({
+      deleted: ids.length,
+      message: `${ids.length} lead(s) and associated data deleted successfully.`,
+    });
+  } catch (err) {
+    console.error("[bulk-delete leads]", err);
+    return res
+      .status(500)
+      .json({ message: err?.message || "Failed to delete leads." });
+  }
+});
+
+app.post("/api/customers/bulk-delete", requireAuth, async (req, res) => {
+  try {
+    const { customerIds } = req.body || {};
+    if (!Array.isArray(customerIds) || customerIds.length === 0) {
+      return res
+        .status(400)
+        .json({
+          message: "customerIds array is required and must not be empty.",
+        });
+    }
+    const ids = customerIds.filter((id) => id != null).map((id) => String(id));
+    if (ids.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Valid customer IDs are required." });
+    }
+
+    // Block if any customer has leads
+    const { data: leadsForCustomers } = await supabase
+      .from("leads")
+      .select("id, customer_id")
+      .in("customer_id", ids);
+    if (leadsForCustomers && leadsForCustomers.length > 0) {
+      return res.status(400).json({
+        message:
+          "One or more customers have leads. Delete those leads first, then delete the customers.",
+      });
+    }
+
+    const { error } = await supabase.from("customers").delete().in("id", ids);
+    if (error) throw error;
+
+    return res.json({
+      deleted: ids.length,
+      message: `${ids.length} customer(s) deleted successfully.`,
+    });
+  } catch (err) {
+    console.error("[bulk-delete customers]", err);
+    return res
+      .status(500)
+      .json({ message: err?.message || "Failed to delete customers." });
   }
 });
 
