@@ -991,20 +991,31 @@ function formatLeadSummary(userData, customerName = null) {
 // DATABASE FUNCTIONS
 // -------------------------
 async function getCustomerByPhone(phone) {
+  if (!phone) return null;
   try {
-    const { data, error } = await supabase
+    // Normalize and try both formats (Supabase may store phone with or without +)
+    const normalized = sanitizePhoneNumber(phone) || String(phone).trim().replace(/\s/g, "");
+    if (!normalized) return null;
+    const withPlus = normalized.startsWith("+") ? normalized : `+${normalized}`;
+    const withoutPlus = normalized.startsWith("+") ? normalized.slice(1) : normalized;
+
+    const { data: data1, error: err1 } = await supabase
       .from("customers")
       .select("*")
-      .eq("phone", phone)
-      .single();
+      .eq("phone", withPlus)
+      .maybeSingle();
+    if (!err1 && data1) return data1;
 
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 means no rows found, which is not an error here.
-      console.error("[BOT] ❌ Error fetching customer:", error.message);
-      return null;
+    if (withPlus !== withoutPlus) {
+      const { data: data2, error: err2 } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("phone", withoutPlus)
+        .maybeSingle();
+      if (!err2 && data2) return data2;
     }
 
-    return data;
+    return null;
   } catch (err) {
     console.error(
       "[BOT] ❌ Database error in getCustomerByPhone:",
@@ -1633,11 +1644,13 @@ async function handleStructuredTextMessage(from, user, messageText) {
     console.log(
       "[BOT] 👋 Greeting or new conversation detected - Starting fresh flow"
     );
-    const customer = await getCustomerByPhone(
-      sanitizePhoneNumber(from) || from
-    );
+    const customer = await getCustomerByPhone(sanitizePhoneNumber(from) || from);
 
-    if (customer && customer.first_name && customer.email && customer.phone) {
+    // If user exists in Supabase (customers) and we have a name, skip asking for name
+    const displayName = customer
+      ? [customer.first_name, customer.last_name].filter(Boolean).join(" ").trim()
+      : "";
+    if (customer && displayName) {
       await sendText(
         from,
         `Greetings, ${customer.first_name}! 👋\n\nTo assist you better, please select the service you're interested in:`
@@ -1646,8 +1659,8 @@ async function handleStructuredTextMessage(from, user, messageText) {
 
       await updateUserSession(from, {
         stage: "selecting_service",
-        name: customer.first_name,
-        email: customer.email || null,
+        name: displayName,
+        email: customer.email ?? null,
         service_required: null,
         service_data: {},
         question_queue: [],
