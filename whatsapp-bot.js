@@ -22,7 +22,7 @@ app.use(bodyParser.json());
 // -------------------------
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 // -------------------------
@@ -43,6 +43,16 @@ const GRAPH_API_BASE_AU = PHONE_NUMBER_ID_AU
 
 const API_BASE = process.env.API_BASE_URL || "https://api.jeppiaaracademy.com";
 const LEAD_WHATSAPP_URL = `${API_BASE}/api/lead/whatsapp`;
+
+// Form links (set in .env; fallback to placeholder text if not set)
+const FORM_LINKS = {
+  enquiryOrApplication:
+    process.env.FORM_LINK_ENQUIRY || process.env.FORM_LINK_APPLICATION,
+  consultation: process.env.FORM_LINK_CONSULTATION,
+  voxdemy: process.env.FORM_LINK_VOXDEMY,
+  eventChiefGuest: process.env.FORM_LINK_EVENT_CHIEF_GUEST,
+  workshop: process.env.FORM_LINK_WORKSHOP,
+};
 
 // -------------------------
 // BRANCH DETECTION HELPER
@@ -76,7 +86,7 @@ function getBranchConfigFromPhoneNumberId(phoneNumberId) {
 
   // Fallback: Default to India/Branch 1 if no match
   console.warn(
-    `[BOT] ⚠️ Unknown phone number ID: ${phoneNumberId}. Defaulting to Branch 1 (India)`,
+    `[BOT] ⚠️ Unknown phone number ID: ${phoneNumberId}. Defaulting to Branch 1 (India)`
   );
   return {
     branchId: 1,
@@ -153,7 +163,7 @@ async function sendText(to, text) {
     };
 
     console.log(
-      `[BOT] 📤 Sending text to ${to}: "${text.substring(0, 50)}..."`,
+      `[BOT] 📤 Sending text to ${to}: "${text.substring(0, 50)}..."`
     );
 
     const response = await fetch(GRAPH_API_BASE, {
@@ -175,15 +185,15 @@ async function sendText(to, text) {
       ) {
         console.error(
           "[BOT] 🔴 TOKEN EXPIRED: WhatsApp token has expired!",
-          result.error?.message || "",
+          result.error?.message || ""
         );
         console.error(
-          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable",
+          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable"
         );
       } else {
         console.error(
           "[BOT] ❌ WhatsApp API Error:",
-          JSON.stringify(result, null, 2),
+          JSON.stringify(result, null, 2)
         );
       }
       return null;
@@ -191,7 +201,7 @@ async function sendText(to, text) {
 
     console.log(
       "[BOT] ✅ Message sent successfully:",
-      result.messages?.[0]?.id,
+      result.messages?.[0]?.id
     );
     return result;
   } catch (err) {
@@ -232,14 +242,14 @@ async function sendList(to, text, buttonText, sections) {
     if (!response.ok) {
       console.error(
         "[BOT] ❌ WhatsApp List Error:",
-        JSON.stringify(result, null, 2),
+        JSON.stringify(result, null, 2)
       );
       return null;
     }
 
     console.log(
       "[BOT] ✅ List message sent successfully:",
-      result.messages?.[0]?.id,
+      result.messages?.[0]?.id
     );
     return result;
   } catch (err) {
@@ -277,14 +287,14 @@ async function sendInteractive(to, text, buttons) {
     if (!response.ok) {
       console.error(
         "[BOT] ❌ WhatsApp Interactive Error:",
-        JSON.stringify(result, null, 2),
+        JSON.stringify(result, null, 2)
       );
       return null;
     }
 
     console.log(
       "[BOT] ✅ Interactive message sent successfully:",
-      result.messages?.[0]?.id,
+      result.messages?.[0]?.id
     );
     return result;
   } catch (err) {
@@ -298,7 +308,7 @@ async function sendConsultantTemplate(
   to,
   customerName,
   consultantName,
-  consultantPhone,
+  consultantPhone
 ) {
   try {
     const templatePayload = {
@@ -343,23 +353,23 @@ async function sendConsultantTemplate(
       ) {
         console.error(
           "[BOT] 🔴 TOKEN EXPIRED: WhatsApp token has expired!",
-          result.error?.message || "",
+          result.error?.message || ""
         );
         console.error(
-          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable",
+          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable"
         );
       } else {
         console.warn(
           `[BOT] ⚠️ Template failed. Falling back to text. Reason: ${JSON.stringify(
-            result,
-          )}`,
+            result
+          )}`
         );
       }
       return false;
     }
   } catch (templateErr) {
     console.warn(
-      `[BOT] ⚠️ Template attempt errored (will fallback to text): ${templateErr.message}`,
+      `[BOT] ⚠️ Template attempt errored (will fallback to text): ${templateErr.message}`
     );
     return false;
   }
@@ -373,7 +383,7 @@ async function sendCtaUrl(to, text, buttonText, url, agentName = "Agent") {
 
     // Log the URL being constructed for debugging
     console.log(
-      `[BOT] 🔗 sendCtaUrl - Full URL: ${url}, Query Params: ${queryParams}`,
+      `[BOT] 🔗 sendCtaUrl - Full URL: ${url}, Query Params: ${queryParams}`
     );
 
     const templatePayload = {
@@ -420,17 +430,17 @@ async function sendCtaUrl(to, text, buttonText, url, agentName = "Agent") {
       ) {
         console.error(
           "[BOT] 🔴 TOKEN EXPIRED: WhatsApp token has expired!",
-          result.error?.message || "",
+          result.error?.message || ""
         );
         console.error(
-          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable",
+          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable"
         );
         // Still try to fallback to text, but it will also fail with token expired
       } else {
         console.warn(
           `[BOT] ⚠️ Template failed (likely pending/rejected). Reason: ${JSON.stringify(
-            result,
-          )}`,
+            result
+          )}`
         );
       }
       console.log(`[BOT] 🔄 Falling back to Text Link...`);
@@ -477,7 +487,7 @@ async function sendOptionsList(
   to,
   questionText,
   options,
-  buttonLabel = "Select",
+  buttonLabel = "Select"
 ) {
   try {
     // WhatsApp API limit: Row title max 24 characters
@@ -517,16 +527,37 @@ async function sendOptionsList(
 
 // Jeppiaar Academy: main service options (reply with 1–4)
 const SERVICES_LIST = [
-  { id: "advanced_diploma", title: "Advanced Diploma Programmes", description: "Advanced Diploma Programmes" },
+  {
+    id: "advanced_diploma",
+    title: "Advanced Diploma Programmes",
+    description: "Advanced Diploma Programmes",
+  },
   { id: "consultations", title: "Consultations", description: "Consultations" },
-  { id: "short_courses", title: "Online Short Courses", description: "Online Short Courses" },
-  { id: "events", title: "Events and Programmes", description: "Events and Programmes" },
+  {
+    id: "short_courses",
+    title: "Online Short Courses",
+    description: "Online Short Courses",
+  },
+  {
+    id: "events",
+    title: "Events and Programmes",
+    description: "Events and Programmes",
+  },
 ];
 
 const DIPLOMA_PROGRAMMES = [
-  { id: "counselling_child_psychology", title: "1️⃣ Advanced Diploma in Counselling & Child Psychology" },
-  { id: "counselling_organizational", title: "2️⃣ Advanced Diploma in Counselling & Organizational Psychology" },
-  { id: "counselling_forensic", title: "3️⃣ Advanced Diploma in Counselling & Forensic Psychology" },
+  {
+    id: "counselling_child_psychology",
+    title: "1️⃣ Advanced Diploma in Counselling & Child Psychology",
+  },
+  {
+    id: "counselling_organizational",
+    title: "2️⃣ Advanced Diploma in Counselling & Organizational Psychology",
+  },
+  {
+    id: "counselling_forensic",
+    title: "3️⃣ Advanced Diploma in Counselling & Forensic Psychology",
+  },
   { id: "art_therapy", title: "4️⃣ Advanced Diploma in Art Therapy" },
 ];
 
@@ -538,7 +569,10 @@ const CONSULTATION_FOR = [
 
 const CONSULTATION_MODE = [
   { id: "online", title: "1️⃣ Online Consultation – ₹6000 (60 minutes)" },
-  { id: "direct", title: "2️⃣ Direct / In-Person Consultation – ₹4000 (60 minutes)" },
+  {
+    id: "direct",
+    title: "2️⃣ Direct / In-Person Consultation – ₹4000 (60 minutes)",
+  },
 ];
 
 const EVENTS_OPTIONS = [
@@ -971,7 +1005,7 @@ async function getCustomerByPhone(phone) {
   } catch (err) {
     console.error(
       "[BOT] ❌ Database error in getCustomerByPhone:",
-      err.message,
+      err.message
     );
     return null;
   }
@@ -1025,7 +1059,12 @@ async function getUserSession(phone) {
 }
 
 // Capture-only: persist inbound text, create/append lead, no Gemini or conversational flow
-async function captureInboundTextMessage(from, messageId, messageText, branchId) {
+async function captureInboundTextMessage(
+  from,
+  messageId,
+  messageText,
+  branchId
+) {
   const normalizedPhone = sanitizePhoneNumber(from);
   if (!normalizedPhone) {
     console.warn("[BOT] Capture: could not normalize phone:", from);
@@ -1054,7 +1093,10 @@ async function captureInboundTextMessage(from, messageId, messageText, branchId)
       customerId = result?.customer?.id ?? null;
       if (leadId) console.log("[BOT] Capture: created new lead", leadId);
     } catch (e) {
-      console.error("[BOT] Capture: failed to create lead/customer:", e.message);
+      console.error(
+        "[BOT] Capture: failed to create lead/customer:",
+        e.message
+      );
       return;
     }
   } else {
@@ -1069,7 +1111,11 @@ async function captureInboundTextMessage(from, messageId, messageText, branchId)
       .maybeSingle();
     if (recentLead) {
       leadId = recentLead.id;
-      const { data: lead } = await supabase.from("leads").select("activity, summary").eq("id", leadId).single();
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("activity, summary")
+        .eq("id", leadId)
+        .single();
       const activity = lead?.activity || [];
       activity.unshift({
         id: Date.now(),
@@ -1078,11 +1124,18 @@ async function captureInboundTextMessage(from, messageId, messageText, branchId)
         user: "Prospect",
         timestamp: new Date().toISOString(),
       });
-      await supabase.from("leads").update({
-        activity,
-        last_updated: new Date().toISOString(),
-        summary: messageText ? (lead?.summary ? `${lead.summary}\n\n${messageText}` : messageText) : lead?.summary,
-      }).eq("id", leadId);
+      await supabase
+        .from("leads")
+        .update({
+          activity,
+          last_updated: new Date().toISOString(),
+          summary: messageText
+            ? lead?.summary
+              ? `${lead.summary}\n\n${messageText}`
+              : messageText
+            : lead?.summary,
+        })
+        .eq("id", leadId);
     } else {
       try {
         const res = await fetch(LEAD_WHATSAPP_URL, {
@@ -1090,7 +1143,9 @@ async function captureInboundTextMessage(from, messageId, messageText, branchId)
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             phone: normalizedPhone,
-            name: customer.first_name ? `${customer.first_name} ${customer.last_name || ""}`.trim() : "WhatsApp User",
+            name: customer.first_name
+              ? `${customer.first_name} ${customer.last_name || ""}`.trim()
+              : "WhatsApp User",
             summary: messageText || "Inbound message",
             conversation_summary_note: messageText || "",
             branchId,
@@ -1123,9 +1178,17 @@ async function captureInboundTextMessage(from, messageId, messageText, branchId)
     }
   }
   if (leadId && logLeadActivity) {
-    logLeadActivity(leadId, "WhatsApp", `Inbound: ${(messageText || "").slice(0, 200)}`, "Prospect").catch(() => {});
+    logLeadActivity(
+      leadId,
+      "WhatsApp",
+      `Inbound: ${(messageText || "").slice(0, 200)}`,
+      "Prospect"
+    ).catch(() => {});
   }
-  await sendText(from, "Thanks, we've received your message. A counselor will get back to you shortly.");
+  await sendText(
+    from,
+    "Thanks, we've received your message. A counselor will get back to you shortly."
+  );
 }
 
 async function updateUserSession(phone, updates, retryCount = 0) {
@@ -1151,7 +1214,7 @@ async function updateUserSession(phone, updates, retryCount = 0) {
       if (isConnectionError && retryCount < 2) {
         // Wait before retry (exponential backoff)
         await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (retryCount + 1)),
+          setTimeout(resolve, 1000 * (retryCount + 1))
         );
         return updateUserSession(phone, updates, retryCount + 1);
       }
@@ -1172,7 +1235,7 @@ async function updateUserSession(phone, updates, retryCount = 0) {
 
     if (isConnectionError && retryCount < 2) {
       await new Promise((resolve) =>
-        setTimeout(resolve, 1000 * (retryCount + 1)),
+        setTimeout(resolve, 1000 * (retryCount + 1))
       );
       return updateUserSession(phone, updates, retryCount + 1);
     }
@@ -1180,7 +1243,7 @@ async function updateUserSession(phone, updates, retryCount = 0) {
     if (retryCount >= 2 || !isConnectionError) {
       console.error(
         "[BOT] ❌ Database error in updateUserSession:",
-        err.message,
+        err.message
       );
     }
     return null;
@@ -1362,7 +1425,7 @@ function formatLeadDataForAPI(userData) {
     if (checkInDate && serviceData.duration) {
       const checkOutDate = calculateCheckOutDate(
         checkInDate,
-        serviceData.duration,
+        serviceData.duration
       );
       leadData.check_out_date = checkOutDate;
     } else {
@@ -1380,7 +1443,7 @@ function formatLeadDataForAPI(userData) {
 
   console.log(
     "[BOT] 📦 Formatted Lead Data for API:",
-    JSON.stringify(leadData, null, 2),
+    JSON.stringify(leadData, null, 2)
   );
 
   return leadData;
@@ -1456,7 +1519,7 @@ async function askNextQuestion(from, user) {
     (q) =>
       !serviceData.hasOwnProperty(q.key) ||
       serviceData[q.key] === null ||
-      serviceData[q.key] === undefined,
+      serviceData[q.key] === undefined
   );
 
   // If we have a destination but are about to ask for a continent, skip it.
@@ -1466,7 +1529,7 @@ async function askNextQuestion(from, user) {
     remainingQuestions[0]?.key === "continent"
   ) {
     console.log(
-      "[BOT] 🧠 Destination already known, skipping continent question.",
+      "[BOT] 🧠 Destination already known, skipping continent question."
     );
     remainingQuestions.shift(); // Remove the continent question
   }
@@ -1478,7 +1541,7 @@ async function askNextQuestion(from, user) {
     remainingQuestions[0]?.key === "travel_timeframe"
   ) {
     console.log(
-      "[BOT] 📅 Travel dates already known, skipping travel_timeframe question.",
+      "[BOT] 📅 Travel dates already known, skipping travel_timeframe question."
     );
     remainingQuestions.shift(); // Remove the travel_timeframe question
   }
@@ -1497,11 +1560,11 @@ async function askNextQuestion(from, user) {
     await sendQuestion(from, remainingQuestions[0]);
   } else {
     console.log(
-      "[BOT] ✅ All questions completed. Submitting lead with complete data.",
+      "[BOT] ✅ All questions completed. Submitting lead with complete data."
     );
     await sendText(
       from,
-      "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+      "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
     );
     // Create lead only once when all questions are completed
     const updatedUser = { ...user, service_data: serviceData };
@@ -1515,7 +1578,7 @@ async function askNextQuestion(from, user) {
     } else {
       await sendText(
         from,
-        "Sorry, there was an issue creating your enquiry. Please try again later.",
+        "Sorry, there was an issue creating your enquiry. Please try again later."
       );
     }
   }
@@ -1589,7 +1652,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
       const dateObj = new Date(travelDate);
       confirmation += `\n• *Travel Date:* ${dateObj.toLocaleDateString(
         "en-GB",
-        { day: "numeric", month: "long", year: "numeric" },
+        { day: "numeric", month: "long", year: "numeric" }
       )}`;
     }
     if (extractedData.adults)
@@ -1623,7 +1686,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
     if (extractedData.needs_airfare) {
       serviceData.include_flights = "yes";
       console.log(
-        "[BOT] ✈️ Airfare detected - will automatically include Air Ticket service",
+        "[BOT] ✈️ Airfare detected - will automatically include Air Ticket service"
       );
     }
 
@@ -1631,7 +1694,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
     if (extractedData.needs_visa) {
       serviceData.include_visa = "yes";
       console.log(
-        "[BOT] 🛂 Visa detected - will automatically include Visa service",
+        "[BOT] 🛂 Visa detected - will automatically include Visa service"
       );
     }
 
@@ -1669,7 +1732,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
     console.error("[BOT] ❌ AI Extraction or JSON parsing failed:", e);
     await sendText(
       from,
-      "I had a little trouble understanding all the details. Let's try step-by-step. What service are you interested in?",
+      "I had a little trouble understanding all the details. Let's try step-by-step. What service are you interested in?"
     );
     await sendOptionsList(from, "Select a service:", SERVICES_LIST, "Choose");
     await updateUserSession(from, {
@@ -1691,14 +1754,16 @@ async function handleStructuredTextMessage(from, user, messageText) {
     user.stage === "completed"
   ) {
     console.log(
-      "[BOT] 👋 Greeting or new conversation detected - Starting fresh flow",
+      "[BOT] 👋 Greeting or new conversation detected - Starting fresh flow"
     );
-    const customer = await getCustomerByPhone(from);
+    const customer = await getCustomerByPhone(
+      sanitizePhoneNumber(from) || from
+    );
 
     if (customer && customer.first_name && customer.email && customer.phone) {
       await sendText(
         from,
-        `Greetings, ${customer.first_name}! 👋\n\nTo assist you better, please select the service you're interested in. Reply with the corresponding number (1-4) for your selection.`,
+        `Greetings, ${customer.first_name}! 👋\n\nTo assist you better, please select the service you're interested in:`
       );
       await sendOptionsList(from, "Select Service:", SERVICES_LIST, "Choose");
 
@@ -1714,7 +1779,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     } else {
       await sendText(
         from,
-        "Hello! 👋\n\nTo assist you better, please provide the following details.\n\n*May I have your full name, please?*",
+        "Hello! 👋\n\n*Welcome to Jeppiaar Academy.*\n\nTo assist you better, please share your *full name*:"
       );
       await updateUserSession(from, {
         stage: "collecting_name",
@@ -1726,169 +1791,233 @@ async function handleStructuredTextMessage(from, user, messageText) {
         flow_type: "structured",
       });
     }
-    return;
+    return true;
   }
 
   // ========================= COLLECTING NAME =========================
+  // After name: go straight to Select Service (list) – 100% tap-based from here.
   if (user.stage === "collecting_name" && messageText) {
     console.log(`[BOT] 📝 Name collected: ${messageText}`);
-
+    const trimmedName = messageText.trim();
+    if (!trimmedName) {
+      await sendText(from, "Please share your full name to continue.");
+      return true;
+    }
     await updateUserSession(from, {
-      name: messageText,
-      stage: "collecting_email",
-    });
-    await sendText(from, "Thank you! Please provide your *email address*.");
-    return;
-  }
-
-  // ========================= COLLECTING EMAIL =========================
-  if (user.stage === "collecting_email" && messageText) {
-    console.log(`[BOT] 📝 Email collected: ${messageText}`);
-    await updateUserSession(from, {
-      email: messageText,
-      stage: "collecting_mobile",
-    });
-    await sendText(from, "Thank you! Please provide your *mobile number*.");
-    return;
-  }
-
-  // ========================= COLLECTING MOBILE =========================
-  if (user.stage === "collecting_mobile" && messageText) {
-    console.log(`[BOT] 📝 Mobile collected: ${messageText}`);
-    await updateUserSession(from, {
-      mobile: messageText,
+      name: trimmedName,
       stage: "selecting_service",
     });
     await sendText(
       from,
-      "Thank you! Please select the service you're interested in. Reply with the corresponding *number (1-4)* for your selection.",
+      "Thank you! 👋 Please select the service you're interested in:"
     );
     await sendOptionsList(from, "Select Service:", SERVICES_LIST, "Choose");
-    return;
+    return true;
   }
 
   // ========================= SELECTING SERVICE (TEXT 1-4) =========================
-  const serviceNumMap = { "1": "advanced_diploma", "2": "consultations", "3": "short_courses", "4": "events" };
+  const serviceNumMap = {
+    1: "advanced_diploma",
+    2: "consultations",
+    3: "short_courses",
+    4: "events",
+  };
   if (user.stage === "selecting_service" && serviceNumMap[messageText.trim()]) {
     const serviceId = serviceNumMap[messageText.trim()];
     const serviceEntry = SERVICES_LIST.find((s) => s.id === serviceId);
-    if (!serviceEntry) return;
+    if (!serviceEntry) return true;
     await updateUserSession(from, { service_required: serviceEntry.title });
 
     if (serviceId === "advanced_diploma") {
-      await sendText(from, "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:");
-      await sendOptionsList(from, "Select programme:", DIPLOMA_PROGRAMMES, "Choose");
+      await sendText(
+        from,
+        "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:"
+      );
+      await sendOptionsList(
+        from,
+        "Select programme:",
+        DIPLOMA_PROGRAMMES,
+        "Choose"
+      );
       await updateUserSession(from, { stage: "selecting_diploma_programme" });
-      return;
+      return true;
     }
     if (serviceId === "consultations") {
-      await sendText(from, "Thank you for reaching out.\n\nPlease select who the consultation is for:");
+      await sendText(
+        from,
+        "Thank you for reaching out.\n\nPlease select who the consultation is for:"
+      );
       await sendOptionsList(from, "Choose:", CONSULTATION_FOR, "Choose");
       await updateUserSession(from, { stage: "consultation_for" });
-      return;
+      return true;
     }
     if (serviceId === "short_courses") {
-      await sendText(from, "Thank you for your interest in our short-term learning programmes.\n\n1️⃣ *Voxdemy – Psychology Basics Course*\n\nReply with 1 to proceed.");
+      await sendText(
+        from,
+        "Thank you for your interest in our short-term online courses.\n\nPlease select to explore:"
+      );
+      await sendOptionsList(
+        from,
+        "Choose:",
+        [{ id: "voxdemy", title: "1️⃣ Voxdemy – Psychology Basics Course" }],
+        "Choose"
+      );
       await updateUserSession(from, { stage: "short_courses_confirm" });
-      return;
+      return true;
     }
     if (serviceId === "events") {
-      await sendText(from, "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:");
+      await sendText(
+        from,
+        "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:"
+      );
       await sendOptionsList(from, "Choose:", EVENTS_OPTIONS, "Choose");
       await updateUserSession(from, { stage: "selecting_events_option" });
-      return;
+      return true;
     }
-    return;
+    return true;
   }
 
   // ========================= SHORT COURSES CONFIRM (TEXT 1) =========================
   if (user.stage === "short_courses_confirm" && messageText.trim() === "1") {
     await sendText(
       from,
-      "The Voxdemy Psychology Basics Course is designed to build strong foundational understanding in psychology in a simple and structured format.\n\nPlease fill this form to proceed:\n[Insert Data Collection Form Link]\n\nOnce submitted, you will be redirected to the course access page where you can explore detailed information and enrolment options.\n\nOur team may also connect with you if required.\n\nWe look forward to having you learn with us.",
+      `The Voxdemy Psychology Basics Course is designed to build strong foundational understanding in psychology in a simple and structured format.\n\nPlease fill this form to proceed:\n${FORM_LINKS.voxdemy}\n\nOnce submitted, you will be redirected to the course access page where you can explore detailed information and enrolment options.\n\nOur team may also connect with you if required.\n\nWe look forward to having you learn with us.`
     );
-    const updatedUser = { ...user, service_data: { ...(user.service_data || {}), short_course: "voxdemy" } };
+    const updatedUser = {
+      ...user,
+      service_data: { ...(user.service_data || {}), short_course: "voxdemy" },
+    };
     const leadResult = await submitLead(updatedUser);
     if (leadResult.success) {
-      await updateUserSession(from, { stage: "completed", service_data: {}, question_queue: [] });
+      await updateUserSession(from, {
+        stage: "completed",
+        service_data: {},
+        question_queue: [],
+      });
     }
-    return;
+    return true;
   }
 
   // ========================= SELECTING DIPLOMA PROGRAMME (TEXT 1-4) =========================
-  const diplomaNumMap = { "1": "counselling_child_psychology", "2": "counselling_organizational", "3": "counselling_forensic", "4": "art_therapy" };
-  if (user.stage === "selecting_diploma_programme" && diplomaNumMap[messageText.trim()]) {
+  const diplomaNumMap = {
+    1: "counselling_child_psychology",
+    2: "counselling_organizational",
+    3: "counselling_forensic",
+    4: "art_therapy",
+  };
+  if (
+    user.stage === "selecting_diploma_programme" &&
+    diplomaNumMap[messageText.trim()]
+  ) {
     const programmeId = diplomaNumMap[messageText.trim()];
     const programmeEntry = DIPLOMA_PROGRAMMES.find((p) => p.id === programmeId);
     if (programmeEntry) {
       await sendText(
         from,
-        `Thank you for selecting ${programmeEntry.title.replace(/^[0-9️⃣\s]+/, "").trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n[Insert Application Form Link]\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`,
+        `Thank you for selecting ${programmeEntry.title
+          .replace(/^[0-9️⃣\s]+/, "")
+          .trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n${
+          FORM_LINKS.enquiryOrApplication
+        }\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`
       );
-      const updatedUser = { ...user, service_data: { ...(user.service_data || {}), programme: programmeId } };
+      const updatedUser = {
+        ...user,
+        service_data: { ...(user.service_data || {}), programme: programmeId },
+      };
       const leadResult = await submitLead(updatedUser);
       if (leadResult.success) {
-        await updateUserSession(from, { stage: "completed", service_data: {}, question_queue: [] });
+        await updateUserSession(from, {
+          stage: "completed",
+          service_data: {},
+          question_queue: [],
+        });
       }
     }
-    return;
+    return true;
   }
 
   // ========================= CONSULTATION FOR (TEXT 1-3) =========================
   if (user.stage === "consultation_for" && /^[1-3]$/.test(messageText.trim())) {
-    const forMap = { "1": "yourself", "2": "family_member", "3": "friend" };
-    await updateUserSession(from, { service_data: { ...(user.service_data || {}), consultation_for: forMap[messageText.trim()] } });
+    const forMap = { 1: "yourself", 2: "family_member", 3: "friend" };
+    await updateUserSession(from, {
+      service_data: {
+        ...(user.service_data || {}),
+        consultation_for: forMap[messageText.trim()],
+      },
+    });
     await sendText(
       from,
-      "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: First floor, EJR Enclave, 1/40H, Mount Poonamallee Rd, Ramapuram, Viralur, Parangi Malai, Chennai, St.Thomas Mount, Tamil Nadu 600016\n\nReply with the number to proceed.",
+      "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: First floor, EJR Enclave, 1/40H, Mount Poonamallee Rd, Ramapuram, Viralur, Parangi Malai, Chennai, St.Thomas Mount, Tamil Nadu 600016\n\nReply with the number to proceed."
     );
     await sendOptionsList(from, "Choose mode:", CONSULTATION_MODE, "Choose");
     await updateUserSession(from, { stage: "consultation_mode" });
-    return;
+    return true;
   }
 
   // ========================= CONSULTATION MODE (TEXT 1-2) =========================
-  if (user.stage === "consultation_mode" && /^[1-2]$/.test(messageText.trim())) {
+  if (
+    user.stage === "consultation_mode" &&
+    /^[1-2]$/.test(messageText.trim())
+  ) {
     const modeId = messageText.trim() === "1" ? "online" : "direct";
-    const modeLabel = modeId === "online" ? "Online Consultation" : "Direct Consultation";
+    const modeLabel =
+      modeId === "online" ? "Online Consultation" : "Direct Consultation";
     await sendText(
       from,
-      `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n[Insert Consultation Form Link]\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`,
+      `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`
     );
-    const updatedUser = { ...user, service_data: { ...(user.service_data || {}), consultation_mode: modeId } };
+    const updatedUser = {
+      ...user,
+      service_data: { ...(user.service_data || {}), consultation_mode: modeId },
+    };
     const leadResult = await submitLead(updatedUser);
     if (leadResult.success) {
-      await updateUserSession(from, { stage: "completed", service_data: {}, question_queue: [] });
+      await updateUserSession(from, {
+        stage: "completed",
+        service_data: {},
+        question_queue: [],
+      });
     }
-    return;
+    return true;
   }
 
   // ========================= SELECTING EVENTS OPTION (TEXT 1-5) =========================
-  const eventsNumMap = { "1": "chief_guest", "2": "workshop_teachers", "3": "workshop_students", "4": "workshop_parents", "5": "workshop_organisations" };
-  if (user.stage === "selecting_events_option" && eventsNumMap[messageText.trim()]) {
+  const eventsNumMap = {
+    1: "chief_guest",
+    2: "workshop_teachers",
+    3: "workshop_students",
+    4: "workshop_parents",
+    5: "workshop_organisations",
+  };
+  if (
+    user.stage === "selecting_events_option" &&
+    eventsNumMap[messageText.trim()]
+  ) {
     const optionId = eventsNumMap[messageText.trim()];
     const messages = {
-      chief_guest:
-        "Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n[Insert Form Link]\n\nThe form will collect: Organisation Website, Date of Programme, Time, Location, Number of Attendees, Indoor/Outdoor Event, Budget for Chief Guest, Is it a Recorded Programme?, Other Guests Attending.\n\nOur team will review and get back to you.",
-      workshop_teachers:
-        "Thank you for your interest in conducting a teachers workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Handling Bullying, Learning Disabilities, Substance Use Prevention, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n[Insert Form Link]\n(Topics available as checkbox options in the form.)\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.",
-      workshop_students:
-        "Thank you for your interest in conducting a students workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Dangers of Social Media, Anti-Bullying, Leadership Development, Handling Exam Anxiety, Be Assertive, Career Guidance, Anti-Addiction, Screen Time Reduction, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n[Insert Form Link]\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.",
-      workshop_parents:
-        "Thank you for your interest in conducting a parent workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Understanding Your Teen Child, Child Nutrition, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n[Insert Form Link]\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.",
-      workshop_organisations:
-        "Thank you for your interest in conducting an organisational workshop.\n\nPlease select the focus areas you would like to include (you can choose multiple): Workplace Mental Health, Stress Management, Emotional Intelligence, Leadership & Communication, POSH Awareness, Burnout Prevention, Team Building & Conflict Management, Custom Workshop (Mention Requirement).\n\nPlease fill this corporate workshop request form:\n[Insert Form Link]\n\nOur team will connect with you to discuss customization, budget, and logistics.",
+      chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n${FORM_LINKS.eventChiefGuest}\n\nThe form will collect: Organisation Website, Date of Programme, Time, Location, Number of Attendees, Indoor/Outdoor Event, Budget for Chief Guest, Is it a Recorded Programme?, Other Guests Attending.\n\nOur team will review and get back to you.`,
+      workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Handling Bullying, Learning Disabilities, Substance Use Prevention, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n(Topics available as checkbox options in the form.)\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+      workshop_students: `Thank you for your interest in conducting a students workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Dangers of Social Media, Anti-Bullying, Leadership Development, Handling Exam Anxiety, Be Assertive, Career Guidance, Anti-Addiction, Screen Time Reduction, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+      workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Understanding Your Teen Child, Child Nutrition, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+      workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nPlease select the focus areas you would like to include (you can choose multiple): Workplace Mental Health, Stress Management, Emotional Intelligence, Leadership & Communication, POSH Awareness, Burnout Prevention, Team Building & Conflict Management, Custom Workshop (Mention Requirement).\n\nPlease fill this corporate workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will connect with you to discuss customization, budget, and logistics.`,
     };
     const msg = messages[optionId];
     if (msg) {
       await sendText(from, msg);
-      const updatedUser = { ...user, service_data: { ...(user.service_data || {}), events_option: optionId } };
+      const updatedUser = {
+        ...user,
+        service_data: { ...(user.service_data || {}), events_option: optionId },
+      };
       const leadResult = await submitLead(updatedUser);
       if (leadResult.success) {
-        await updateUserSession(from, { stage: "completed", service_data: {}, question_queue: [] });
+        await updateUserSession(from, {
+          stage: "completed",
+          service_data: {},
+          question_queue: [],
+        });
       }
     }
-    return;
+    return true;
   }
 
   // ========================= COLLECTING SERVICE DATA (TEXT) =========================
@@ -1897,14 +2026,14 @@ async function handleStructuredTextMessage(from, user, messageText) {
       console.log("[BOT] ⚠️ Question queue is empty. Resetting.");
       await sendText(
         from,
-        "Something went wrong. Let's start over. Type *hi* to begin.",
+        "Something went wrong. Let's start over. Type *hi* to begin."
       );
       await updateUserSession(from, {
         stage: "collecting_name",
         question_queue: [],
         service_data: {},
       });
-      return;
+      return true;
     }
 
     const currentQuestion = questions[0];
@@ -1914,7 +2043,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       console.log(
         `[BOT] 📝 Capturing text for 'other' option for key: ${
           currentQuestion.key || serviceData.awaiting_sub_destination
-        }`,
+        }`
       );
 
       // If we're in sub-destination flow (Europe/Africa), store in the sub-destination key
@@ -1935,7 +2064,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           // All questions completed
           await sendText(
             from,
-            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
           );
           const updatedUser = { ...user, service_data: serviceData };
           const leadResult = await submitLead(updatedUser);
@@ -1948,11 +2077,11 @@ async function handleStructuredTextMessage(from, user, messageText) {
           } else {
             await sendText(
               from,
-              "Sorry, there was an issue creating your enquiry. Please try again later.",
+              "Sorry, there was an issue creating your enquiry. Please try again later."
             );
           }
         }
-        return;
+        return true;
       }
 
       // Regular "other" text input
@@ -1976,7 +2105,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
         console.log("[BOT] ✅ All questions completed. Submitting lead.");
         await sendText(
           from,
-          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
         );
         const leadResult = await submitLead(updatedUser);
         if (leadResult.success) {
@@ -1988,20 +2117,20 @@ async function handleStructuredTextMessage(from, user, messageText) {
         } else {
           await sendText(
             from,
-            "Sorry, there was an issue creating your enquiry. Please try again later.",
+            "Sorry, there was an issue creating your enquiry. Please try again later."
           );
         }
       }
-      return;
+      return true;
     }
 
     if (currentQuestion.type !== "text") {
       await sendText(
         from,
-        "🤔 I was expecting a selection from the list. Please choose one of the options.",
+        "🤔 I was expecting a selection from the list. Please choose one of the options."
       );
       await sendQuestion(from, currentQuestion);
-      return;
+      return true;
     }
 
     console.log(`[BOT] 🔍 Validating text answer for: ${currentQuestion.key}`);
@@ -2024,7 +2153,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       if (validationResult.status === "VALID") {
         serviceData[currentQuestion.key] = validationResult.answer;
         console.log(
-          `[BOT] 📝 Saving validated answer for ${currentQuestion.key}: ${validationResult.answer}`,
+          `[BOT] 📝 Saving validated answer for ${currentQuestion.key}: ${validationResult.answer}`
         );
 
         const remainingQuestions = questions.slice(1);
@@ -2039,7 +2168,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           console.log("[BOT] ✅ All questions completed. Submitting lead.");
           await sendText(
             from,
-            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
           );
           const updatedUser = { ...user, service_data: serviceData };
           const leadResult = await submitLead(updatedUser);
@@ -2052,7 +2181,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           } else {
             await sendText(
               from,
-              "Sorry, there was an issue creating your enquiry. Please try again later.",
+              "Sorry, there was an issue creating your enquiry. Please try again later."
             );
           }
         }
@@ -2060,7 +2189,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
         // INVALID or QUESTION
         await sendText(
           from,
-          `I didn't quite get that. Let's try again.\n\n${currentQuestion.prompt}`,
+          `I didn't quite get that. Let's try again.\n\n${currentQuestion.prompt}`
         );
       }
     } catch (e) {
@@ -2076,11 +2205,11 @@ async function handleStructuredTextMessage(from, user, messageText) {
         await sendQuestion(from, remainingQuestions[0]);
       } else {
         console.log(
-          "[BOT] ✅ All questions completed (validation failed). Submitting lead.",
+          "[BOT] ✅ All questions completed (validation failed). Submitting lead."
         );
         await sendText(
           from,
-          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
         );
         const updatedUser = { ...user, service_data: serviceData };
         await submitLead(updatedUser);
@@ -2091,7 +2220,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
         });
       }
     }
-    return;
+    return true;
   }
 
   // ========================= DEFAULT FALLBACK =========================
@@ -2099,9 +2228,12 @@ async function handleStructuredTextMessage(from, user, messageText) {
     console.log("[BOT] ⚠️ Unhandled message or stage in structured flow.");
     await sendText(
       from,
-      "🤔 I didn't understand that.\n\nType *hi* to start a new enquiry.",
+      "🤔 I didn't understand that.\n\nType *hi* to start a new enquiry."
     );
+    return true;
   }
+
+  return false;
 }
 
 // -------------------------
@@ -2147,7 +2279,7 @@ app.post("/webhook", async (req, res) => {
           if (updateError) {
             console.warn(
               `[BOT] Failed to update message status to failed:`,
-              updateError.message,
+              updateError.message
             );
           } else {
             // Message status updated to failed (silent)
@@ -2165,7 +2297,7 @@ app.post("/webhook", async (req, res) => {
                 // Ignore if columns don't exist
                 console.warn(
                   `[BOT] Could not update error details (columns may not exist):`,
-                  err.message,
+                  err.message
                 );
               }
             }
@@ -2177,7 +2309,7 @@ app.post("/webhook", async (req, res) => {
         // For error 131047 (Re-engagement message), log a helpful message
         if (errorCode === 131047) {
           console.warn(
-            `[BOT] ⚠️ Re-engagement required for ${recipientId}. Customer needs to send a message first, or use a template message.`,
+            `[BOT] ⚠️ Re-engagement required for ${recipientId}. Customer needs to send a message first, or use a template message.`
           );
         }
 
@@ -2187,7 +2319,7 @@ app.post("/webhook", async (req, res) => {
             messageId,
             errorCode,
             errorTitle,
-            recipientId,
+            recipientId
           );
         }
       } else if (statusType === "delivered") {
@@ -2218,7 +2350,7 @@ app.post("/webhook", async (req, res) => {
     const message = value?.messages?.[0];
     if (!message) {
       console.log(
-        "[BOT] ⚠️ No message found in payload (likely a status update or other event).",
+        "[BOT] ⚠️ No message found in payload (likely a status update or other event)."
       );
       return;
     }
@@ -2227,17 +2359,17 @@ app.post("/webhook", async (req, res) => {
     const metadata = value?.metadata;
     const receivingPhoneNumberId = metadata?.phone_number_id;
     const branchConfig = getBranchConfigFromPhoneNumberId(
-      receivingPhoneNumberId,
+      receivingPhoneNumberId
     );
     const branchId = branchConfig.branchId;
 
     console.log(
-      `\n[BOT] 📞 Message received on phone number ID: ${receivingPhoneNumberId}`,
+      `\n[BOT] 📞 Message received on phone number ID: ${receivingPhoneNumberId}`
     );
     console.log(
       `[BOT] 🏢 Branch detected: ${branchId} (${
         branchId === 1 ? "India" : "Australia"
-      })`,
+      })`
     );
 
     const from = message.from;
@@ -2247,7 +2379,7 @@ app.post("/webhook", async (req, res) => {
     // Log the full message payload for debugging
     console.log(
       `[BOT] 🔍 Full message payload:`,
-      JSON.stringify(message, null, 2),
+      JSON.stringify(message, null, 2)
     );
     console.log(`[BOT] 🔍 Message type: ${message.type}`);
 
@@ -2265,7 +2397,7 @@ app.post("/webhook", async (req, res) => {
     const buttonMessage = message.button;
     if (message.type === "button" && buttonMessage) {
       console.log(
-        `[BOT] 🔘 Template button click detected! Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`,
+        `[BOT] 🔘 Template button click detected! Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`
       );
 
       // Normalize button payload/text for comparison
@@ -2289,7 +2421,7 @@ app.post("/webhook", async (req, res) => {
         const templateMessageId = message.context?.id;
         if (templateMessageId && messageIdToLeadCache) {
           console.log(
-            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`,
+            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`
           );
           const cached = messageIdToLeadCache.get(templateMessageId);
           if (cached && cached.leadId) {
@@ -2297,7 +2429,7 @@ app.post("/webhook", async (req, res) => {
             console.log(`[BOT] ✅ Found lead ID ${leadId} from message cache`);
           } else {
             console.log(
-              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`,
+              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`
             );
           }
         }
@@ -2305,14 +2437,14 @@ app.post("/webhook", async (req, res) => {
         // Fallback: Find most recent lead for this customer if we couldn't extract from template
         if (!leadId) {
           console.log(
-            `[BOT] 🔄 Fallback: Finding most recent lead for customer`,
+            `[BOT] 🔄 Fallback: Finding most recent lead for customer`
           );
           const customer = await getCustomerByPhone(from);
           if (!customer) {
             console.error(`[BOT] ❌ Could not find customer for phone ${from}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly.",
+              "Sorry, I couldn't find your enquiry. Please contact us directly."
             );
             return;
           }
@@ -2328,11 +2460,11 @@ app.post("/webhook", async (req, res) => {
           if (leadError) {
             console.error(
               `[BOT] ❌ Error finding lead for customer ${customer.id}:`,
-              leadError?.message,
+              leadError?.message
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly.",
+              "Sorry, I couldn't find your enquiry. Please contact us directly."
             );
             return;
           }
@@ -2341,14 +2473,14 @@ app.post("/webhook", async (req, res) => {
             console.error(`[BOT] ❌ No lead found for customer ${customer.id}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly.",
+              "Sorry, I couldn't find your enquiry. Please contact us directly."
             );
             return;
           }
 
           leadId = recentLead.id;
           console.log(
-            `[BOT] ✅ Found lead ${leadId} for customer ${customer.id}`,
+            `[BOT] ✅ Found lead ${leadId} for customer ${customer.id}`
           );
         }
 
@@ -2363,11 +2495,11 @@ app.post("/webhook", async (req, res) => {
         if (leadError || !lead) {
           console.error(
             `[BOT] ❌ Error fetching lead ${leadId}:`,
-            leadError?.message,
+            leadError?.message
           );
           await sendText(
             from,
-            "Sorry, there was a problem confirming your enquiry. Please try again.",
+            "Sorry, there was a problem confirming your enquiry. Please try again."
           );
         } else {
           // Only log activity that customer confirmed via WhatsApp
@@ -2375,16 +2507,16 @@ app.post("/webhook", async (req, res) => {
             leadId,
             "Customer Confirmed",
             "Customer confirmed the enquiry via WhatsApp button.",
-            "Customer",
+            "Customer"
           );
 
           console.log(
-            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`,
+            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`
           );
 
           await sendText(
             from,
-            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨",
+            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨"
           );
         }
         return;
@@ -2407,25 +2539,25 @@ app.post("/webhook", async (req, res) => {
         const templateMessageId = message.context?.id;
         if (templateMessageId && messageIdToLeadCache) {
           console.log(
-            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`,
+            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`
           );
           const cached = messageIdToLeadCache.get(templateMessageId);
           if (cached) {
             if (cached.leadId) {
               leadId = cached.leadId;
               console.log(
-                `[BOT] ✅ Found lead ID ${leadId} from message cache`,
+                `[BOT] ✅ Found lead ID ${leadId} from message cache`
               );
             }
             if (cached.customerId) {
               customerId = cached.customerId;
               console.log(
-                `[BOT] ✅ Found customer ID ${customerId} from message cache`,
+                `[BOT] ✅ Found customer ID ${customerId} from message cache`
               );
             }
           } else {
             console.log(
-              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`,
+              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`
             );
           }
         }
@@ -2433,14 +2565,14 @@ app.post("/webhook", async (req, res) => {
         // Fallback: Find most recent lead for this customer if we couldn't extract from template
         if (!leadId) {
           console.log(
-            `[BOT] 🔄 Fallback: Finding most recent lead for customer`,
+            `[BOT] 🔄 Fallback: Finding most recent lead for customer`
           );
           const customer = await getCustomerByPhone(from);
           if (!customer) {
             console.error(`[BOT] ❌ Could not find customer for phone ${from}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
             );
             return;
           }
@@ -2460,11 +2592,11 @@ app.post("/webhook", async (req, res) => {
           if (leadError) {
             console.error(
               `[BOT] ❌ Error finding lead for customer ${customer.id}:`,
-              leadError?.message,
+              leadError?.message
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
             );
             return;
           }
@@ -2473,7 +2605,7 @@ app.post("/webhook", async (req, res) => {
             console.error(`[BOT] ❌ No lead found for customer ${customer.id}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
             );
             return;
           }
@@ -2484,7 +2616,7 @@ app.post("/webhook", async (req, res) => {
           if (recentLead.all_assignees && recentLead.all_assignees.length > 0) {
             staffId = recentLead.all_assignees[0].staff?.id;
             console.log(
-              `[BOT] ✅ Found lead ${leadId} with staff ${staffId} for customer ${customer.id}`,
+              `[BOT] ✅ Found lead ${leadId} with staff ${staffId} for customer ${customer.id}`
             );
           }
         } else {
@@ -2507,7 +2639,7 @@ app.post("/webhook", async (req, res) => {
           console.error(`[BOT] ❌ Could not determine lead ID`);
           await sendText(
             from,
-            "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
+            "Sorry, I couldn't find your assigned consultant. Please contact us directly."
           );
           return;
         }
@@ -2516,7 +2648,7 @@ app.post("/webhook", async (req, res) => {
           console.error(`[BOT] ❌ No staff assigned to lead ${leadId}`);
           await sendText(
             from,
-            "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
+            "Sorry, I couldn't find your assigned consultant. Please contact us directly."
           );
           return;
         }
@@ -2541,11 +2673,11 @@ app.post("/webhook", async (req, res) => {
         if (staffError || leadFetchError || !staff || !lead || !lead.customer) {
           console.error(
             `[BOT] ❌ Error fetching details for agent contact request:`,
-            staffError?.message || leadFetchError?.message,
+            staffError?.message || leadFetchError?.message
           );
           await sendText(
             from,
-            "Sorry, I couldn't process your request right now. Your agent will still be in touch.",
+            "Sorry, I couldn't process your request right now. Your agent will still be in touch."
           );
         } else {
           const sanitizedStaffPhone = sanitizePhoneNumber(staff.phone);
@@ -2587,7 +2719,7 @@ app.post("/webhook", async (req, res) => {
             from,
             customerName,
             staff.name,
-            consultantPhone,
+            consultantPhone
           );
 
           // Fallback to plain text if template fails
@@ -2601,7 +2733,7 @@ app.post("/webhook", async (req, res) => {
 
       // If button doesn't match known handlers, log and return
       console.warn(
-        `[BOT] ⚠️ Unhandled template button click. Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`,
+        `[BOT] ⚠️ Unhandled template button click. Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`
       );
       return;
     }
@@ -2610,7 +2742,7 @@ app.post("/webhook", async (req, res) => {
     const interactive = message.interactive;
     if (interactive) {
       console.log(
-        `[BOT] 🔘 Interactive message detected! Type: ${interactive.type}`,
+        `[BOT] 🔘 Interactive message detected! Type: ${interactive.type}`
       );
     }
 
@@ -2636,7 +2768,7 @@ app.post("/webhook", async (req, res) => {
         // Try to find customer by phone to link the message
         const phoneWithSpace = normalizedPhone.replace(
           /^(\+\d{1,4})(\d+)/,
-          "$1 $2",
+          "$1 $2"
         );
         const phoneWithoutSpace = normalizedPhone.replace(/\s/g, "");
         const { data: customer } = await supabase
@@ -2672,12 +2804,12 @@ app.post("/webhook", async (req, res) => {
           ) {
             console.warn(
               `[BOT] Table/column error: ${storeError.message}. ` +
-                `Please run the migration script: migrations/create_whatsapp_messages_table.sql`,
+                `Please run the migration script: migrations/create_whatsapp_messages_table.sql`
             );
           } else {
             console.warn(
               "[BOT] Failed to store incoming message:",
-              storeError.message,
+              storeError.message
             );
           }
         }
@@ -2702,7 +2834,7 @@ app.post("/webhook", async (req, res) => {
           branchIdError.message?.includes("schema cache")
         ) {
           console.log(
-            "[BOT] ℹ️ branch_id column not available in whatsapp_sessions table. Continuing without it.",
+            "[BOT] ℹ️ branch_id column not available in whatsapp_sessions table. Continuing without it."
           );
         } else {
           // Re-throw if it's a different error
@@ -2734,7 +2866,7 @@ app.post("/webhook", async (req, res) => {
       const { data: customer } = await supabase
         .from("customers")
         .select(
-          "whatsapp_automation_disabled, whatsapp_automation_disabled_until, last_staff_message_at",
+          "whatsapp_automation_disabled, whatsapp_automation_disabled_until, last_staff_message_at"
         )
         .eq("id", user.customer_id)
         .single();
@@ -2752,7 +2884,7 @@ app.post("/webhook", async (req, res) => {
           ) {
             // Time has passed, auto-enable automation
             console.log(
-              `[BOT] ⏰ Automation re-enabled for customer ${user.customer_id} (inactivity timeout expired).`,
+              `[BOT] ⏰ Automation re-enabled for customer ${user.customer_id} (inactivity timeout expired).`
             );
             await supabase
               .from("customers")
@@ -2768,7 +2900,7 @@ app.post("/webhook", async (req, res) => {
         // Check if automation should be auto-enabled (5 minutes after last staff message)
         if (!isAutomationDisabled && customer.last_staff_message_at) {
           const lastMessageTime = new Date(
-            customer.last_staff_message_at,
+            customer.last_staff_message_at
           ).getTime();
           const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
           if (lastMessageTime < fiveMinutesAgo) {
@@ -2797,7 +2929,7 @@ app.post("/webhook", async (req, res) => {
       console.log(
         `[BOT] ⏸️ Automation is disabled for customer ${
           user?.customer_id || "unknown"
-        }. Skipping all automated responses.`,
+        }. Skipping all automated responses.`
       );
       return; // Don't process any automated messages
     }
@@ -2812,7 +2944,7 @@ app.post("/webhook", async (req, res) => {
       // Log the full interactive payload for debugging
       console.log(
         `[BOT] 🔍 Full interactive payload:`,
-        JSON.stringify(interactive, null, 2),
+        JSON.stringify(interactive, null, 2)
       );
       console.log(`[BOT] 🔍 Button reply ID received: "${reply_id}"`);
 
@@ -2849,7 +2981,7 @@ app.post("/webhook", async (req, res) => {
             if (!leadError && recentLead) {
               leadId = recentLead.id;
               console.log(
-                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`,
+                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`
               );
             }
           }
@@ -2857,11 +2989,11 @@ app.post("/webhook", async (req, res) => {
 
         if (!leadId) {
           console.error(
-            `[BOT] ❌ Could not determine lead ID for confirm enquiry`,
+            `[BOT] ❌ Could not determine lead ID for confirm enquiry`
           );
           await sendText(
             from,
-            "Sorry, I couldn't find your enquiry. Please contact us directly.",
+            "Sorry, I couldn't find your enquiry. Please contact us directly."
           );
           return;
         }
@@ -2878,11 +3010,11 @@ app.post("/webhook", async (req, res) => {
         if (error || !lead) {
           console.error(
             `[BOT] ❌ Error fetching lead ${leadId}:`,
-            error?.message,
+            error?.message
           );
           await sendText(
             from,
-            "Sorry, there was a problem confirming your enquiry. Please try again.",
+            "Sorry, there was a problem confirming your enquiry. Please try again."
           );
         } else {
           // Only log activity that customer confirmed via WhatsApp
@@ -2890,16 +3022,16 @@ app.post("/webhook", async (req, res) => {
             leadId,
             "Customer Confirmed",
             "Customer confirmed the enquiry via WhatsApp button.",
-            "Customer",
+            "Customer"
           );
 
           console.log(
-            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`,
+            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`
           );
 
           await sendText(
             from,
-            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨",
+            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨"
           );
         }
         return;
@@ -2949,7 +3081,7 @@ app.post("/webhook", async (req, res) => {
               ) {
                 staffId = recentLead.all_assignees[0].staff?.id;
                 console.log(
-                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`,
+                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`
                 );
               }
             }
@@ -2961,17 +3093,17 @@ app.post("/webhook", async (req, res) => {
 
         if (!leadId || !staffId) {
           console.error(
-            `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`,
+            `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`
           );
           await sendText(
             from,
-            "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
+            "Sorry, I couldn't find your assigned consultant. Please contact us directly."
           );
           return;
         }
 
         console.log(
-          `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`,
+          `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`
         );
 
         const { data: staff, error: staffError } = await supabase
@@ -2987,11 +3119,11 @@ app.post("/webhook", async (req, res) => {
 
         if (staffError || leadError || !staff || !lead || !lead.customer) {
           console.error(
-            `[BOT] ❌ Error fetching details for agent contact request.`,
+            `[BOT] ❌ Error fetching details for agent contact request.`
           );
           await sendText(
             from,
-            "Sorry, I couldn't process your request right now. Your agent will still be in touch.",
+            "Sorry, I couldn't process your request right now. Your agent will still be in touch."
           );
         } else {
           const sanitizedStaffPhone = sanitizePhoneNumber(staff.phone);
@@ -3022,7 +3154,7 @@ app.post("/webhook", async (req, res) => {
             from,
             customerName,
             staff.name,
-            consultantPhone,
+            consultantPhone
           );
 
           // Fallback to plain text if template fails
@@ -3042,11 +3174,11 @@ app.post("/webhook", async (req, res) => {
       } else if (interactive.type === "button_reply") {
         // Log unhandled button clicks for debugging (only for button_reply)
         console.warn(
-          `[BOT] ⚠️ Unhandled button click with ID: "${reply_id}" (normalized: "${normalizedReplyId}")`,
+          `[BOT] ⚠️ Unhandled button click with ID: "${reply_id}" (normalized: "${normalizedReplyId}")`
         );
         console.warn(
           `[BOT] ⚠️ Full button_reply object:`,
-          JSON.stringify(interactive.button_reply, null, 2),
+          JSON.stringify(interactive.button_reply, null, 2)
         );
 
         // Try to handle as "Confirm Enquiry" or "Talk to Agent" based on button title if ID doesn't match
@@ -3057,7 +3189,7 @@ app.post("/webhook", async (req, res) => {
           buttonTitle.includes("enquiry")
         ) {
           console.log(
-            `[BOT] 🔄 Attempting to handle as "Confirm Enquiry" based on button title: "${interactive.button_reply?.title}"`,
+            `[BOT] 🔄 Attempting to handle as "Confirm Enquiry" based on button title: "${interactive.button_reply?.title}"`
           );
           // Fall through to confirm enquiry handler logic
           let leadId = null;
@@ -3074,18 +3206,18 @@ app.post("/webhook", async (req, res) => {
             if (!leadError && recentLead) {
               leadId = recentLead.id;
               console.log(
-                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`,
+                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`
               );
             }
           }
 
           if (!leadId) {
             console.error(
-              `[BOT] ❌ Could not determine lead ID for confirm enquiry`,
+              `[BOT] ❌ Could not determine lead ID for confirm enquiry`
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly.",
+              "Sorry, I couldn't find your enquiry. Please contact us directly."
             );
             return;
           }
@@ -3102,16 +3234,16 @@ app.post("/webhook", async (req, res) => {
           if (error || !updatedLead) {
             console.error(
               `[BOT] ❌ Error updating lead status to Confirmed:`,
-              error?.message,
+              error?.message
             );
             await sendText(
               from,
-              "Sorry, there was a problem confirming your enquiry. Please try again.",
+              "Sorry, there was a problem confirming your enquiry. Please try again."
             );
           } else {
             await sendText(
               from,
-              "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨",
+              "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨"
             );
           }
           return;
@@ -3120,7 +3252,7 @@ app.post("/webhook", async (req, res) => {
           (buttonTitle.includes("talk") || buttonTitle.includes("agent"))
         ) {
           console.log(
-            `[BOT] 🔄 Attempting to handle as "Talk to Agent" based on button title: "${interactive.button_reply?.title}"`,
+            `[BOT] 🔄 Attempting to handle as "Talk to Agent" based on button title: "${interactive.button_reply?.title}"`
           );
           // Fall through to talk to agent handler logic
           let leadId = null;
@@ -3143,7 +3275,7 @@ app.post("/webhook", async (req, res) => {
               ) {
                 staffId = recentLead.all_assignees[0].staff?.id;
                 console.log(
-                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`,
+                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`
                 );
               }
             }
@@ -3154,17 +3286,17 @@ app.post("/webhook", async (req, res) => {
 
           if (!leadId || !staffId) {
             console.error(
-              `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`,
+              `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
             );
             return;
           }
 
           console.log(
-            `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`,
+            `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`
           );
 
           const { data: staff, error: staffError } = await supabase
@@ -3180,11 +3312,11 @@ app.post("/webhook", async (req, res) => {
 
           if (staffError || leadError || !staff || !lead || !lead.customer) {
             console.error(
-              `[BOT] ❌ Error fetching details for agent contact request.`,
+              `[BOT] ❌ Error fetching details for agent contact request.`
             );
             await sendText(
               from,
-              "Sorry, I couldn't process your request right now. Your agent will still be in touch.",
+              "Sorry, I couldn't process your request right now. Your agent will still be in touch."
             );
           } else {
             const sanitizedStaffPhone = sanitizePhoneNumber(staff.phone);
@@ -3215,7 +3347,7 @@ app.post("/webhook", async (req, res) => {
               from,
               customerName,
               staff.name,
-              consultantPhone,
+              consultantPhone
             );
 
             // Fallback to plain text if template fails
@@ -3231,7 +3363,7 @@ app.post("/webhook", async (req, res) => {
       // AI Confirmation Flow
       if (normalizedReplyId === "ai_confirm_yes") {
         console.log(
-          "[BOT] ✅ User confirmed AI data. Asking remaining questions.",
+          "[BOT] ✅ User confirmed AI data. Asking remaining questions."
         );
 
         // Don't create lead here - wait until all questions are completed
@@ -3241,17 +3373,17 @@ app.post("/webhook", async (req, res) => {
       }
       if (normalizedReplyId === "ai_confirm_no") {
         console.log(
-          "[BOT] ❌ User rejected AI data. Switching to structured flow.",
+          "[BOT] ❌ User rejected AI data. Switching to structured flow."
         );
         await sendText(
           from,
-          "My apologies! Let's get it right step-by-step. What service can I help you with?",
+          "My apologies! Let's get it right step-by-step. What service can I help you with?"
         );
         await sendOptionsList(
           from,
           "Select a service:",
           SERVICES_LIST,
-          "Choose",
+          "Choose"
         );
         await updateUserSession(from, {
           stage: "selecting_service",
@@ -3272,14 +3404,24 @@ app.post("/webhook", async (req, res) => {
         if (serviceId === "advanced_diploma") {
           await sendText(
             from,
-            "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:",
+            "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:"
           );
-          await sendOptionsList(from, "Select programme:", DIPLOMA_PROGRAMMES, "Choose");
-          await updateUserSession(from, { stage: "selecting_diploma_programme" });
+          await sendOptionsList(
+            from,
+            "Select programme:",
+            DIPLOMA_PROGRAMMES,
+            "Choose"
+          );
+          await updateUserSession(from, {
+            stage: "selecting_diploma_programme",
+          });
           return;
         }
         if (serviceId === "consultations") {
-          await sendText(from, "Thank you for reaching out.\n\nPlease select who the consultation is for:");
+          await sendText(
+            from,
+            "Thank you for reaching out.\n\nPlease select who the consultation is for:"
+          );
           await sendOptionsList(from, "Choose:", CONSULTATION_FOR, "Choose");
           await updateUserSession(from, { stage: "consultation_for" });
           return;
@@ -3287,13 +3429,16 @@ app.post("/webhook", async (req, res) => {
         if (serviceId === "short_courses") {
           await sendText(
             from,
-            "Thank you for your interest in our short-term learning programmes.\n\n1️⃣ *Voxdemy – Psychology Basics Course*\n\nReply with 1 to proceed.",
+            "Thank you for your interest in our short-term learning programmes.\n\n1️⃣ *Voxdemy – Psychology Basics Course*\n\nReply with 1 to proceed."
           );
           await updateUserSession(from, { stage: "short_courses_confirm" });
           return;
         }
         if (serviceId === "events") {
-          await sendText(from, "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:");
+          await sendText(
+            from,
+            "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:"
+          );
           await sendOptionsList(from, "Choose:", EVENTS_OPTIONS, "Choose");
           await updateUserSession(from, { stage: "selecting_events_option" });
           return;
@@ -3303,44 +3448,110 @@ app.post("/webhook", async (req, res) => {
 
       // Diploma programme selected (list_reply)
       if (user.stage === "selecting_diploma_programme") {
-        const programmeEntry = DIPLOMA_PROGRAMMES.find((p) => p.id === (normalizedReplyId || reply_id));
+        const programmeEntry = DIPLOMA_PROGRAMMES.find(
+          (p) => p.id === (normalizedReplyId || reply_id)
+        );
         if (programmeEntry) {
           await sendText(
             from,
-            `Thank you for selecting ${programmeEntry.title.replace(/^[0-9️⃣\s]+/, "").trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n[Insert Application Form Link]\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`,
+            `Thank you for selecting ${programmeEntry.title
+              .replace(/^[0-9️⃣\s]+/, "")
+              .trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n${
+              FORM_LINKS.enquiryOrApplication
+            }\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`
           );
-          const updatedUser = { ...user, service_data: { ...(user.service_data || {}), programme: programmeEntry.id } };
+          const updatedUser = {
+            ...user,
+            service_data: {
+              ...(user.service_data || {}),
+              programme: programmeEntry.id,
+            },
+          };
           const leadResult = await submitLead(updatedUser);
           if (leadResult.success) {
-            await updateUserSession(from, { stage: "completed", service_data: {}, question_queue: [] });
+            await updateUserSession(from, {
+              stage: "completed",
+              service_data: {},
+              question_queue: [],
+            });
           }
+        }
+        return;
+      }
+
+      // Short courses: Voxdemy selected (list_reply) – tap-based
+      if (
+        user.stage === "short_courses_confirm" &&
+        (normalizedReplyId === "voxdemy" || reply_id === "voxdemy")
+      ) {
+        await sendText(
+          from,
+          `Thank you for your interest in our short-term online courses.\n\n*Voxdemy – Psychology Basics Course* is designed to build strong foundational understanding in psychology.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}\n\nOur team may connect with you if required. We look forward to having you learn with us.`
+        );
+        const updatedUser = {
+          ...user,
+          service_data: {
+            ...(user.service_data || {}),
+            short_course: "voxdemy",
+          },
+        };
+        const leadResult = await submitLead(updatedUser);
+        if (leadResult.success) {
+          await updateUserSession(from, {
+            stage: "completed",
+            service_data: {},
+            question_queue: [],
+          });
         }
         return;
       }
 
       // Consultation: who it's for (list_reply)
       if (user.stage === "consultation_for") {
-        await updateUserSession(from, { service_data: { ...(user.service_data || {}), consultation_for: normalizedReplyId || reply_id } });
+        await updateUserSession(from, {
+          service_data: {
+            ...(user.service_data || {}),
+            consultation_for: normalizedReplyId || reply_id,
+          },
+        });
         await sendText(
           from,
-          "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: First floor, EJR Enclave, 1/40H, Mount Poonamallee Rd, Ramapuram, Viralur, Parangi Malai, Chennai, St.Thomas Mount, Tamil Nadu 600016\n\nReply with the number to proceed.",
+          "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: St.Thomas Mount, Chennai\n\nTap your choice below."
         );
-        await sendOptionsList(from, "Choose mode:", CONSULTATION_MODE, "Choose");
+        await sendOptionsList(
+          from,
+          "Choose mode:",
+          CONSULTATION_MODE,
+          "Choose"
+        );
         await updateUserSession(from, { stage: "consultation_mode" });
         return;
       }
 
       // Consultation: mode selected (list_reply)
       if (user.stage === "consultation_mode") {
-        const modeLabel = (normalizedReplyId || reply_id) === "online" ? "Online Consultation" : "Direct Consultation";
+        const modeLabel =
+          (normalizedReplyId || reply_id) === "online"
+            ? "Online Consultation"
+            : "Direct Consultation";
         await sendText(
           from,
-          `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n[Insert Consultation Form Link]\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`,
+          `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`
         );
-        const updatedUser = { ...user, service_data: { ...(user.service_data || {}), consultation_mode: normalizedReplyId || reply_id } };
+        const updatedUser = {
+          ...user,
+          service_data: {
+            ...(user.service_data || {}),
+            consultation_mode: normalizedReplyId || reply_id,
+          },
+        };
         const leadResult = await submitLead(updatedUser);
         if (leadResult.success) {
-          await updateUserSession(from, { stage: "completed", service_data: {}, question_queue: [] });
+          await updateUserSession(from, {
+            stage: "completed",
+            service_data: {},
+            question_queue: [],
+          });
         }
         return;
       }
@@ -3349,24 +3560,29 @@ app.post("/webhook", async (req, res) => {
       if (user.stage === "selecting_events_option") {
         const optionId = normalizedReplyId || reply_id;
         const messages = {
-          chief_guest:
-            "Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n[Insert Form Link]\n\nThe form will collect: Organisation Website, Date of Programme, Time, Location, Number of Attendees, Indoor/Outdoor Event, Budget for Chief Guest, Is it a Recorded Programme?, Other Guests Attending.\n\nOur team will review and get back to you.",
-          workshop_teachers:
-            "Thank you for your interest in conducting a teachers workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Handling Bullying, Learning Disabilities, Substance Use Prevention, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n[Insert Form Link]\n(Topics available as checkbox options in the form.)\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.",
-          workshop_students:
-            "Thank you for your interest in conducting a students workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Dangers of Social Media, Anti-Bullying, Leadership Development, Handling Exam Anxiety, Be Assertive, Career Guidance, Anti-Addiction, Screen Time Reduction, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n[Insert Form Link]\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.",
-          workshop_parents:
-            "Thank you for your interest in conducting a parent workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Understanding Your Teen Child, Child Nutrition, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n[Insert Form Link]\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.",
-          workshop_organisations:
-            "Thank you for your interest in conducting an organisational workshop.\n\nPlease select the focus areas you would like to include (you can choose multiple): Workplace Mental Health, Stress Management, Emotional Intelligence, Leadership & Communication, POSH Awareness, Burnout Prevention, Team Building & Conflict Management, Custom Workshop (Mention Requirement).\n\nPlease fill this corporate workshop request form:\n[Insert Form Link]\n\nOur team will connect with you to discuss customization, budget, and logistics.",
+          chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n${FORM_LINKS.eventChiefGuest}\n\nThe form will collect: Organisation Website, Date of Programme, Time, Location, Number of Attendees, Indoor/Outdoor Event, Budget for Chief Guest, Is it a Recorded Programme?, Other Guests Attending.\n\nOur team will review and get back to you.`,
+          workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Handling Bullying, Learning Disabilities, Substance Use Prevention, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n(Topics available as checkbox options in the form.)\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+          workshop_students: `Thank you for your interest in conducting a students workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Dangers of Social Media, Anti-Bullying, Leadership Development, Handling Exam Anxiety, Be Assertive, Career Guidance, Anti-Addiction, Screen Time Reduction, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+          workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Understanding Your Teen Child, Child Nutrition, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+          workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nPlease select the focus areas you would like to include (you can choose multiple): Workplace Mental Health, Stress Management, Emotional Intelligence, Leadership & Communication, POSH Awareness, Burnout Prevention, Team Building & Conflict Management, Custom Workshop (Mention Requirement).\n\nPlease fill this corporate workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will connect with you to discuss customization, budget, and logistics.`,
         };
         const msg = messages[optionId];
         if (msg) {
           await sendText(from, msg);
-          const updatedUser = { ...user, service_data: { ...(user.service_data || {}), events_option: optionId } };
+          const updatedUser = {
+            ...user,
+            service_data: {
+              ...(user.service_data || {}),
+              events_option: optionId,
+            },
+          };
           const leadResult = await submitLead(updatedUser);
           if (leadResult.success) {
-            await updateUserSession(from, { stage: "completed", service_data: {}, question_queue: [] });
+            await updateUserSession(from, {
+              stage: "completed",
+              service_data: {},
+              question_queue: [],
+            });
           }
         }
         return;
@@ -3381,7 +3597,7 @@ app.post("/webhook", async (req, res) => {
           const keyLabel = currentQuestion.key.replace(/_/g, " ");
           await sendText(
             from,
-            `Please type the ${keyLabel} you're looking for.`,
+            `Please type the ${keyLabel} you're looking for.`
           );
           serviceData.awaiting_other_text = true;
           await updateUserSession(from, { service_data: serviceData });
@@ -3408,7 +3624,7 @@ app.post("/webhook", async (req, res) => {
               reply_id === "europe" ? "Europe" : "Africa"
             }:`,
             subOptions,
-            "Choose",
+            "Choose"
           );
 
           // Update service data and keep the same question key but mark we're in sub-selection
@@ -3458,7 +3674,7 @@ app.post("/webhook", async (req, res) => {
             // All questions completed
             await sendText(
               from,
-              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
             );
             const updatedUser = { ...user, service_data: serviceData };
             const leadResult = await submitLead(updatedUser);
@@ -3471,7 +3687,7 @@ app.post("/webhook", async (req, res) => {
             } else {
               await sendText(
                 from,
-                "Sorry, there was an issue creating your enquiry. Please try again later.",
+                "Sorry, there was an issue creating your enquiry. Please try again later."
               );
             }
           }
@@ -3484,7 +3700,7 @@ app.post("/webhook", async (req, res) => {
           if (normalizedReplyId === "other" || reply_id === "other") {
             await sendText(
               from,
-              "Please type the specific destination you're looking for.",
+              "Please type the specific destination you're looking for."
             );
             serviceData.awaiting_other_text = true;
             serviceData.awaiting_sub_destination =
@@ -3509,7 +3725,7 @@ app.post("/webhook", async (req, res) => {
             // All questions completed
             await sendText(
               from,
-              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
             );
             const updatedUser = { ...user, service_data: serviceData };
             const leadResult = await submitLead(updatedUser);
@@ -3522,7 +3738,7 @@ app.post("/webhook", async (req, res) => {
             } else {
               await sendText(
                 from,
-                "Sorry, there was an issue creating your enquiry. Please try again later.",
+                "Sorry, there was an issue creating your enquiry. Please try again later."
               );
             }
           }
@@ -3545,7 +3761,7 @@ app.post("/webhook", async (req, res) => {
           (q) =>
             !serviceData.hasOwnProperty(q.key) ||
             serviceData[q.key] === null ||
-            serviceData[q.key] === undefined,
+            serviceData[q.key] === undefined
         );
 
         if (remainingQuestions.length > 0) {
@@ -3558,7 +3774,7 @@ app.post("/webhook", async (req, res) => {
           console.log("[BOT] ✅ All questions completed. Submitting lead.");
           await sendText(
             from,
-            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
+            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
           );
           const updatedUser = { ...user, service_data: serviceData };
           const leadResult = await submitLead(updatedUser);
@@ -3571,7 +3787,7 @@ app.post("/webhook", async (req, res) => {
           } else {
             await sendText(
               from,
-              "Sorry, there was an issue creating your enquiry. Please try again later.",
+              "Sorry, there was an issue creating your enquiry. Please try again later."
             );
           }
         }
@@ -3589,23 +3805,30 @@ app.post("/webhook", async (req, res) => {
           interactive.type
         }, Button ID: ${interactive.button_reply?.id || "N/A"}, Title: ${
           interactive.button_reply?.title || "N/A"
-        }`,
+        }`
       );
       console.warn(
         `[BOT] ⚠️ Full interactive object:`,
-        JSON.stringify(interactive, null, 2),
+        JSON.stringify(interactive, null, 2)
       );
       return; // Don't fall through to text handler
     }
 
-    // ================== 2. HANDLE TEXT MESSAGES (CAPTURE-ONLY) ==================
+    // ================== 2. HANDLE TEXT MESSAGES ==================
+    // Academy flow: Name → Select Service (list) → branch by service (all tap-based). Try structured flow first.
     if (messageText) {
+      const handled = await handleStructuredTextMessage(
+        from,
+        user,
+        messageText
+      );
+      if (handled) return;
       await captureInboundTextMessage(from, messageId, messageText, branchId);
       return;
     }
 
     console.log(
-      "[BOT] ⚠️ Unhandled message type (e.g., image, location). Ignoring.",
+      "[BOT] ⚠️ Unhandled message type (e.g., image, location). Ignoring."
     );
   } catch (err) {
     console.error("\n[BOT] ❌ UNCAUGHT WEBHOOK ERROR:", err.stack || err);
