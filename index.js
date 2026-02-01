@@ -5546,20 +5546,12 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       rooms: requirements?.rooms || [], // Empty if not provided - agents will fill
     };
 
-    // 2. Create Lead
+    // 2. Create Lead – academy schema only (same columns as CRM: no travel_date, return_date, destination, duration, tour_type, requirements, budget, check_in/out, etc.)
     const newLead = {
       customer_id: customer.id,
-      destination: destination || "N/A",
-      travel_date: finalTravelDate, // Will be null if not provided - agents will fill
-      return_date: return_date || null,
-      duration: duration || null,
-      status: "Enquiry", // Changed from "Confirmed" to "Enquiry"
+      status: "Enquiry",
       priority: "Low",
       lead_type: "Warm",
-      tour_type: (services || []).includes("Tour Package")
-        ? "customized"
-        : null,
-      requirements: normalizedRequirements,
       services: services || (enquiry ? [enquiry] : []),
       summary: summaryText,
       notes: allNotes,
@@ -5576,8 +5568,6 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       source: "whatsapp",
       created_at: new Date().toISOString(),
       last_updated: new Date().toISOString(),
-      // Omit check_in_date, check_out_date, forex_*, starting_point, air_travel_type,
-      // is_flexible_dates, is_return_ticket, budget, visa_type, passport_* – not in academy leads schema
     };
 
     const { data: createdLead, error: leadError } = await supabase
