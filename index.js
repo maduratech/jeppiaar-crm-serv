@@ -5254,30 +5254,27 @@ async function sendInvoiceWhatsappMessage(
   return null;
 }
 
-// Strip travel/tourism fields from lead object for API responses (academy-only responses).
-const TRAVEL_LEAD_KEYS = [
-  "destination",
-  "starting_point",
-  "travel_date",
-  "duration",
-  "itinerary_id",
-  "itinerary_ids",
-  "tour_type",
-  "tour_region",
+// Build lead response without travel/tourism fields (academy-only). Those keys are never included.
+const LEAD_RESPONSE_KEYS = [
+  "id", "customer_id", "status", "priority", "lead_type", "enquiry", "services",
+  "summary", "notes", "activity", "branch_ids", "source", "requirements",
+  "last_updated", "created_at", "updated_at", "last_staff_response_at",
+  "current_staff_name", "academy_data",
 ];
 function sanitizeLeadResponse(lead) {
   if (!lead || typeof lead !== "object") return lead;
-  const { ...rest } = lead;
-  TRAVEL_LEAD_KEYS.forEach((k) => delete rest[k]);
-  // Expose enquiry at top level from academy_data for consistency
+  const out = {};
+  LEAD_RESPONSE_KEYS.forEach((k) => {
+    if (Object.prototype.hasOwnProperty.call(lead, k)) out[k] = lead[k];
+  });
   const enquiry =
-    rest.enquiry ||
-    (rest.academy_data &&
-      typeof rest.academy_data === "object" &&
-      rest.academy_data.enquiry) ||
+    out.enquiry ||
+    (out.academy_data &&
+      typeof out.academy_data === "object" &&
+      out.academy_data.enquiry) ||
     null;
-  if (enquiry != null) rest.enquiry = enquiry;
-  return rest;
+  if (enquiry != null) out.enquiry = enquiry;
+  return out;
 }
 
 // --- WHATSAPP LEAD ENDPOINT ---
