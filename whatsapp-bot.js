@@ -531,7 +531,11 @@ const SERVICES_LIST = [
     title: "1. Advanced Diploma",
     description: "Advanced Diploma Programmes",
   },
-  { id: "consultations", title: "2. Consultations", description: "Patient Consultations" },
+  {
+    id: "consultations",
+    title: "2. Consultations",
+    description: "Patient Consultations",
+  },
   {
     id: "short_courses",
     title: "3. Online Short Courses",
@@ -574,16 +578,45 @@ const CONSULTATION_FOR = [
 ];
 
 const CONSULTATION_MODE = [
-  { id: "online", title: "1. Online – ₹6000 (60 min)", description: "Online Consultation – ₹6000 (60 minutes)" },
-  { id: "direct", title: "2. In-Person – ₹4000", description: "Direct/In-Person Consultation – ₹4000 (60 min), St.Thomas Mount, Chennai" },
+  {
+    id: "online",
+    title: "1. Online – ₹6000 (60 min)",
+    description: "Online Consultation – ₹6000 (60 minutes)",
+  },
+  {
+    id: "direct",
+    title: "2. In-Person – ₹4000",
+    description:
+      "Direct/In-Person Consultation – ₹4000 (60 min), St.Thomas Mount, Chennai",
+  },
 ];
 
 const EVENTS_OPTIONS = [
-  { id: "chief_guest", title: "1. Chief Guest", description: "Invite Dr. Saranya Jaikumar as Chief Guest" },
-  { id: "workshop_teachers", title: "2. Workshop – Teachers", description: "Workshop for Teachers" },
-  { id: "workshop_students", title: "3. Workshop – Students", description: "Workshop for Students" },
-  { id: "workshop_parents", title: "4. Workshop – Parents", description: "Workshop for Parents" },
-  { id: "workshop_organisations", title: "5. Workshop – Orgs", description: "Workshop for Organizations" },
+  {
+    id: "chief_guest",
+    title: "1. Chief Guest",
+    description: "Invite Dr. Saranya Jaikumar as Chief Guest",
+  },
+  {
+    id: "workshop_teachers",
+    title: "2. Workshop – Teachers",
+    description: "Workshop for Teachers",
+  },
+  {
+    id: "workshop_students",
+    title: "3. Workshop – Students",
+    description: "Workshop for Students",
+  },
+  {
+    id: "workshop_parents",
+    title: "4. Workshop – Parents",
+    description: "Workshop for Parents",
+  },
+  {
+    id: "workshop_organisations",
+    title: "5. Workshop – Orgs",
+    description: "Workshop for Organizations",
+  },
 ];
 
 const TRAVEL_TIMEFRAMES = [
@@ -994,10 +1027,13 @@ async function getCustomerByPhone(phone) {
   if (!phone) return null;
   try {
     // Normalize and try both formats (Supabase may store phone with or without +)
-    const normalized = sanitizePhoneNumber(phone) || String(phone).trim().replace(/\s/g, "");
+    const normalized =
+      sanitizePhoneNumber(phone) || String(phone).trim().replace(/\s/g, "");
     if (!normalized) return null;
     const withPlus = normalized.startsWith("+") ? normalized : `+${normalized}`;
-    const withoutPlus = normalized.startsWith("+") ? normalized.slice(1) : normalized;
+    const withoutPlus = normalized.startsWith("+")
+      ? normalized.slice(1)
+      : normalized;
 
     const { data: data1, error: err1 } = await supabase
       .from("customers")
@@ -1644,11 +1680,16 @@ async function handleStructuredTextMessage(from, user, messageText) {
     console.log(
       "[BOT] 👋 Greeting or new conversation detected - Starting fresh flow"
     );
-    const customer = await getCustomerByPhone(sanitizePhoneNumber(from) || from);
+    const customer = await getCustomerByPhone(
+      sanitizePhoneNumber(from) || from
+    );
 
     // If user exists in Supabase (customers) and we have a name, skip asking for name
     const displayName = customer
-      ? [customer.first_name, customer.last_name].filter(Boolean).join(" ").trim()
+      ? [customer.first_name, customer.last_name]
+          .filter(Boolean)
+          .join(" ")
+          .trim()
       : "";
     if (customer && displayName) {
       await sendText(
@@ -1744,15 +1785,20 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (serviceId === "short_courses") {
       await sendText(
         from,
-        "Thank you for your interest in our short-term online courses.\n\nPlease select to explore:"
+        `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}`
       );
-      await sendOptionsList(
-        from,
-        "Choose:",
-        [{ id: "voxdemy", title: "1️⃣ Voxdemy – Psychology Basics Course" }],
-        "Choose"
-      );
-      await updateUserSession(from, { stage: "short_courses_confirm" });
+      const updatedUser = {
+        ...user,
+        service_data: { ...(user.service_data || {}), short_course: "voxdemy" },
+      };
+      const leadResult = await submitLead(updatedUser);
+      if (leadResult.success) {
+        await updateUserSession(from, {
+          stage: "completed",
+          service_data: {},
+          question_queue: [],
+        });
+      }
       return true;
     }
     if (serviceId === "events") {
@@ -1763,27 +1809,6 @@ async function handleStructuredTextMessage(from, user, messageText) {
       await sendOptionsList(from, "Choose:", EVENTS_OPTIONS, "Choose");
       await updateUserSession(from, { stage: "selecting_events_option" });
       return true;
-    }
-    return true;
-  }
-
-  // ========================= SHORT COURSES CONFIRM (TEXT 1) =========================
-  if (user.stage === "short_courses_confirm" && messageText.trim() === "1") {
-    await sendText(
-      from,
-      `The Voxdemy Psychology Basics Course is designed to build strong foundational understanding in psychology in a simple and structured format.\n\nPlease fill this form to proceed:\n${FORM_LINKS.voxdemy}\n\nOnce submitted, you will be redirected to the course access page where you can explore detailed information and enrolment options.\n\nOur team may also connect with you if required.\n\nWe look forward to having you learn with us.`
-    );
-    const updatedUser = {
-      ...user,
-      service_data: { ...(user.service_data || {}), short_course: "voxdemy" },
-    };
-    const leadResult = await submitLead(updatedUser);
-    if (leadResult.success) {
-      await updateUserSession(from, {
-        stage: "completed",
-        service_data: {},
-        question_queue: [],
-      });
     }
     return true;
   }
@@ -3319,9 +3344,23 @@ app.post("/webhook", async (req, res) => {
         if (serviceId === "short_courses") {
           await sendText(
             from,
-            "Thank you for your interest in our short-term learning programmes.\n\n1️⃣ *Voxdemy – Psychology Basics Course*\n\nReply with 1 to proceed."
+            `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}`
           );
-          await updateUserSession(from, { stage: "short_courses_confirm" });
+          const updatedUser = {
+            ...user,
+            service_data: {
+              ...(user.service_data || {}),
+              short_course: "voxdemy",
+            },
+          };
+          const leadResult = await submitLead(updatedUser);
+          if (leadResult.success) {
+            await updateUserSession(from, {
+              stage: "completed",
+              service_data: {},
+              question_queue: [],
+            });
+          }
           return;
         }
         if (serviceId === "events") {
@@ -3365,33 +3404,6 @@ app.post("/webhook", async (req, res) => {
               question_queue: [],
             });
           }
-        }
-        return;
-      }
-
-      // Short courses: Voxdemy selected (list_reply) – tap-based
-      if (
-        user.stage === "short_courses_confirm" &&
-        (normalizedReplyId === "voxdemy" || reply_id === "voxdemy")
-      ) {
-        await sendText(
-          from,
-          `Thank you for your interest in our short-term online courses.\n\n*Voxdemy – Psychology Basics Course* is designed to build strong foundational understanding in psychology.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}\n\nOur team may connect with you if required. We look forward to having you learn with us.`
-        );
-        const updatedUser = {
-          ...user,
-          service_data: {
-            ...(user.service_data || {}),
-            short_course: "voxdemy",
-          },
-        };
-        const leadResult = await submitLead(updatedUser);
-        if (leadResult.success) {
-          await updateUserSession(from, {
-            stage: "completed",
-            service_data: {},
-            question_queue: [],
-          });
         }
         return;
       }
