@@ -1,0 +1,24 @@
+{
+  "name": "crm-backend",
+  "version": "1.0.0",
+  "description": "Backend server for CRM to handle secure API calls.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.25.0",
+    "@supabase/supabase-js": "^2.44.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "form-data": "^4.0.5",
+    "libphonenumber-js": "^1.12.31",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^7.0.9",
+    "pdf-parse": "^1.1.4",
+    "puppeteer": "^24.33.0"
+  }
+}
