@@ -491,19 +491,17 @@ async function sendOptionsList(
 ) {
   try {
     // WhatsApp API limit: Row title max 24 characters
+    // WhatsApp: row title max 24 chars, description max 72 – prefer short title + description for full text
     const sections = [
       {
         title: "Options",
         rows: options.map((opt) => {
-          // Truncate title to 24 characters if needed
-          let title = opt.title || "";
-          if (title.length > 24) {
-            title = title.substring(0, 21) + "...";
-          }
+          let title = (opt.title || "").trim();
+          if (title.length > 24) title = title.substring(0, 24);
           return {
             id: opt.id,
-            title: title,
-            description: opt.description || undefined,
+            title,
+            description: (opt.description || "").trim() || undefined,
           };
         }),
       },
@@ -526,21 +524,22 @@ async function sendOptionsList(
 }
 
 // Jeppiaar Academy: main service options (reply with 1–4)
+// WhatsApp list row title max 24 chars – use short title + full description so text is fully visible
 const SERVICES_LIST = [
   {
     id: "advanced_diploma",
-    title: "Advanced Diploma Programmes",
+    title: "1. Advanced Diploma",
     description: "Advanced Diploma Programmes",
   },
-  { id: "consultations", title: "Consultations", description: "Consultations" },
+  { id: "consultations", title: "2. Consultations", description: "Patient Consultations" },
   {
     id: "short_courses",
-    title: "Online Short Courses",
+    title: "3. Online Short Courses",
     description: "Online Short Courses",
   },
   {
     id: "events",
-    title: "Events and Programmes",
+    title: "4. Events & Programmes",
     description: "Events and Programmes",
   },
 ];
@@ -548,17 +547,24 @@ const SERVICES_LIST = [
 const DIPLOMA_PROGRAMMES = [
   {
     id: "counselling_child_psychology",
-    title: "1️⃣ Advanced Diploma in Counselling & Child Psychology",
+    title: "1. Child & Child Psych",
+    description: "Advanced Diploma in Counselling & Child Psychology",
   },
   {
     id: "counselling_organizational",
-    title: "2️⃣ Advanced Diploma in Counselling & Organizational Psychology",
+    title: "2. Organizational Psych",
+    description: "Advanced Diploma in Counselling & Organizational Psychology",
   },
   {
     id: "counselling_forensic",
-    title: "3️⃣ Advanced Diploma in Counselling & Forensic Psychology",
+    title: "3. Forensic Psychology",
+    description: "Advanced Diploma in Counselling & Forensic Psychology",
   },
-  { id: "art_therapy", title: "4️⃣ Advanced Diploma in Art Therapy" },
+  {
+    id: "art_therapy",
+    title: "4. Art Therapy",
+    description: "Advanced Diploma in Art Therapy",
+  },
 ];
 
 const CONSULTATION_FOR = [
@@ -568,19 +574,16 @@ const CONSULTATION_FOR = [
 ];
 
 const CONSULTATION_MODE = [
-  { id: "online", title: "1️⃣ Online Consultation – ₹6000 (60 minutes)" },
-  {
-    id: "direct",
-    title: "2️⃣ Direct / In-Person Consultation – ₹4000 (60 minutes)",
-  },
+  { id: "online", title: "1. Online – ₹6000 (60 min)", description: "Online Consultation – ₹6000 (60 minutes)" },
+  { id: "direct", title: "2. In-Person – ₹4000", description: "Direct/In-Person Consultation – ₹4000 (60 min), St.Thomas Mount, Chennai" },
 ];
 
 const EVENTS_OPTIONS = [
-  { id: "chief_guest", title: "1️⃣ Invite Dr. Saranya Jaikumar as Chief Guest" },
-  { id: "workshop_teachers", title: "2️⃣ Workshop for Teachers" },
-  { id: "workshop_students", title: "3️⃣ Workshop for Students" },
-  { id: "workshop_parents", title: "4️⃣ Workshop for Parents" },
-  { id: "workshop_organisations", title: "5️⃣ Workshop for Organizations" },
+  { id: "chief_guest", title: "1. Chief Guest", description: "Invite Dr. Saranya Jaikumar as Chief Guest" },
+  { id: "workshop_teachers", title: "2. Workshop – Teachers", description: "Workshop for Teachers" },
+  { id: "workshop_students", title: "3. Workshop – Students", description: "Workshop for Students" },
+  { id: "workshop_parents", title: "4. Workshop – Parents", description: "Workshop for Parents" },
+  { id: "workshop_organisations", title: "5. Workshop – Orgs", description: "Workshop for Organizations" },
 ];
 
 const TRAVEL_TIMEFRAMES = [
@@ -978,7 +981,7 @@ function formatLeadSummary(userData, customerName = null) {
 
   summary += `\n*Personal Details*\n`;
   summary += `*Name:* ${customerName || userData.name}\n`;
-  summary += `*Email:* ${userData.email}\n`;
+  summary += `*Email:* ${userData.email ?? "—"}\n`;
   summary += `*Phone:* ${userData.phone}\n`;
 
   return summary;
@@ -1276,37 +1279,16 @@ function parseBudget(budgetString) {
   return null;
 }
 
-// NEW: Format data for API endpoint
+// Format lead data for API – Jeppiaar Academy only (no travel/tourism fields)
 function formatLeadDataForAPI(userData) {
-  const serviceData = userData.service_data || {};
-  const serviceTitle = userData.service_required; // e.g., "🧳 Tour Package"
-
-  // Find the service object from its title to get the ID
+  const serviceTitle = userData.service_required;
   const serviceId =
-    SERVICES_LIST.find((s) => s.title === serviceTitle)?.id || "other";
+    SERVICES_LIST.find((s) => s.title === serviceTitle)?.id ||
+    SERVICES_LIST.find((s) => s.id === serviceTitle)?.id ||
+    "other";
 
-  let services = [];
-  let enquiry = "Other"; // Default
-
+  let enquiry = "Other";
   switch (serviceId) {
-    case "air_ticket":
-      enquiry = "Air Ticket";
-      break;
-    case "visa":
-      enquiry = "Visa";
-      break;
-    case "hotel":
-      enquiry = "Hotel";
-      break;
-    case "tour_package":
-      enquiry = "Tour Package";
-      break;
-    case "forex":
-      enquiry = "Forex";
-      break;
-    case "passport":
-      enquiry = "Passport";
-      break;
     case "advanced_diploma":
       enquiry = "Advanced Diploma Programmes";
       break;
@@ -1319,124 +1301,19 @@ function formatLeadDataForAPI(userData) {
     case "events":
       enquiry = "Events and Programmes";
       break;
-    case "other":
-      enquiry = "Other";
-      break;
-  }
-  services.push(enquiry);
-
-  // Default requirements - set to null if not collected (agents will fill later)
-  const requirements = {
-    adults: null, // Not collected in simplified flow - agents will fill
-    children: null, // Not collected in simplified flow - agents will fill
-    babies: 0,
-    hotelPreference: "No Preference",
-    stayPreference: "No Preference",
-    rooms: [], // Empty - agents will fill passenger details
-  };
-
-  let travelDate = null; // Set to null - agents will fill date of travel
-  let returnDate = null;
-
-  // Only use travel_date if explicitly provided (from AI extraction)
-  // Do NOT calculate from timeframe or use fallback dates
-  if (serviceData.travel_date) {
-    // Use the specific date extracted by AI (already in YYYY-MM-DD format)
-    travelDate = serviceData.travel_date;
-    console.log(`[BOT] 📅 Using extracted travel date: ${travelDate}`);
-
-    // If return_date is available, use it
-    if (serviceData.return_date) {
-      returnDate = serviceData.return_date;
-      console.log(`[BOT] 📅 Using extracted return date: ${returnDate}`);
-    }
-  }
-  // Note: We do NOT calculate dates from timeframe anymore
-  // Agents will fill the actual travel date manually
-
-  // Format destination - handle expandable destinations
-  let formattedDestination = (serviceData.destination || "N/A")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-
-  // If destination is europe or africa, check if there's a sub-destination
-  if (serviceData.destination === "europe" && serviceData.europe_destination) {
-    formattedDestination = serviceData.europe_destination
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
-  } else if (
-    serviceData.destination === "africa" &&
-    serviceData.africa_destination
-  ) {
-    formattedDestination = serviceData.africa_destination
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    default:
+      enquiry = serviceTitle || "Other";
   }
 
   const leadData = {
     name: userData.name,
     phone: userData.phone,
-    email: userData.email,
-    enquiry: enquiry, // Primary enquiry type
-    services: [...new Set(services)], // Unique services
-    date: travelDate, // Will be null if not explicitly provided
-    travel_date: travelDate, // Will be null - agents will fill
-    return_date: returnDate, // Return date if available
-    destination: formattedDestination,
-    duration: serviceData.duration || null,
-    adults: null, // Not collected - agents will fill
-    children: null, // Not collected - agents will fill
-    babies: 0,
-    requirements: requirements,
+    email: userData.email ?? null,
+    enquiry,
+    services: [...new Set([enquiry])],
+    summary: formatLeadSummary(userData, userData.name),
   };
 
-  // Service-specific structured data
-  if (serviceId === "air_ticket") {
-    leadData.air_travel_type = serviceData.air_travel_type || null;
-  }
-
-  if (serviceId === "visa") {
-    leadData.visa_type = serviceData.visa_type || null;
-  }
-
-  if (serviceId === "tour_package") {
-    // Store budget as-is (new names: Budget Friendly, Comfort Collection, etc.)
-    leadData.budget = serviceData.budget || null;
-  }
-
-  if (serviceId === "forex") {
-    leadData.forex_currency_have = serviceData.currency_have || null;
-    leadData.forex_currency_required = serviceData.currency_required || null;
-  }
-
-  if (serviceId === "passport") {
-    leadData.passport_service_type = serviceData.passport_type || "New";
-    leadData.passport_city_of_residence = serviceData.city || null;
-  }
-
-  if (serviceId === "hotel") {
-    // Calculate check-out from check-in + duration
-    const checkInDate = serviceData.check_in
-      ? convertDateFormat(serviceData.check_in)
-      : null;
-
-    leadData.check_in_date = checkInDate;
-
-    if (checkInDate && serviceData.duration) {
-      const checkOutDate = calculateCheckOutDate(
-        checkInDate,
-        serviceData.duration
-      );
-      leadData.check_out_date = checkOutDate;
-    } else {
-      leadData.check_out_date = null;
-    }
-  }
-
-  // Create summary text for the lead's main summary field
-  leadData.summary = formatLeadSummary(userData, userData.name);
-
-  // Pass the raw user query if it exists from the AI flow
   if (userData.conversation_summary) {
     leadData.conversation_summary_note = userData.conversation_summary;
   }

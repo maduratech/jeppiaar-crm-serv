@@ -5214,39 +5214,16 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       JSON.stringify(formData, null, 2)
     );
 
+    // Academy WhatsApp lead – only these fields are sent from the bot (no travel/tourism)
     const {
       name,
       phone,
       email,
-      enquiry, // This is the service type, e.g., "Tour Package"
-      services, // This is the new array of services
-      date: travel_date,
-      travel_date: travel_date_alt, // Alternative field name
-      return_date,
-      destination,
-      duration,
-      adults,
-      children,
-      babies,
-      requirements, // The full requirements object
+      enquiry,
+      services,
       summary,
-      conversation_summary_note, // New field for raw query
-      check_in_date,
-      check_out_date,
-      forex_currency_have,
-      forex_currency_required,
-      starting_point,
-      visa_type,
-      budget,
-      passport_service_type,
-      passport_city_of_residence,
-      air_travel_type, // New field for air ticket travel type
+      conversation_summary_note,
     } = formData;
-
-    // Use travel_date_alt if provided, otherwise use date, or check_in_date, or null if not provided
-    // Note: If check_in_date is available but travel_date is not, use check_in_date as travel_date
-    const finalTravelDate =
-      travel_date_alt || travel_date || check_in_date || null;
 
     // Validate required fields (only phone is mandatory)
     if (!phone) {
@@ -5530,23 +5507,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     };
     allNotes.push(summaryNote);
 
-    // Auto-detect tour region
-    const destinationLower = (destination || "").toLowerCase();
-    const isIndian = indianPlaces.some((place) =>
-      destinationLower.includes(place)
-    );
-    // Normalize requirements - set adults/children to null if not provided (agents will fill)
-    const normalizedRequirements = {
-      adults: adults !== undefined && adults !== null ? parseInt(adults) : null,
-      children:
-        children !== undefined && children !== null ? parseInt(children) : null,
-      babies: babies !== undefined && babies !== null ? parseInt(babies) : 0,
-      hotelPreference: requirements?.hotelPreference || "No Preference",
-      stayPreference: requirements?.stayPreference || "No Preference",
-      rooms: requirements?.rooms || [], // Empty if not provided - agents will fill
-    };
-
-    // 2. Create Lead – academy schema only (same columns as CRM: no travel_date, return_date, destination, duration, tour_type, requirements, budget, check_in/out, etc.)
+    // 2. Create Lead – academy schema only (no travel/tourism columns)
     const newLead = {
       customer_id: customer.id,
       status: "Enquiry",
