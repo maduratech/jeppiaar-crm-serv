@@ -37,7 +37,10 @@ const app = express();
 // CORS: env-driven allowed origins (comma-separated). Fallback for legacy deployments.
 const envOrigins = process.env.CORS_ORIGINS;
 const allowedOrigins = envOrigins
-  ? envOrigins.split(",").map((o) => o.trim()).filter(Boolean)
+  ? envOrigins
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean)
   : [
       "https://crm.jeppiaaracademy.com",
       "https://jeppiaaracademy.com",
@@ -85,9 +88,9 @@ const ACADEMY_ALLOWED_PATTERNS = [
   /^\/api\/sessions\/report$/,
   /^\/api\/whatsapp\/send-text$/,
   /^\/api\/whatsapp\/health$/,
-  /^\/api\/settings\/.+/,           // /api/settings/:key
-  /^\/api\/job-applicants\/?.*/,   // /api/job-applicants and /api/job-applicants/:id
-  /^\/api\/invoicing\/.+/,         // create-link, send-whatsapp, etc.
+  /^\/api\/settings\/.+/, // /api/settings/:key
+  /^\/api\/job-applicants\/?.*/, // /api/job-applicants and /api/job-applicants/:id
+  /^\/api\/invoicing\/.+/, // create-link, send-whatsapp, etc.
   /^\/api\/razorpay-webhook$/,
   /^\/api\/feedback\/send$/,
 ];
@@ -154,8 +157,8 @@ const resumeUpload = multer({
     } else {
       cb(
         new Error(
-          "Invalid file type. Only PDF, DOC, and DOCX files are allowed.",
-        ),
+          "Invalid file type. Only PDF, DOC, and DOCX files are allowed."
+        )
       );
     }
   },
@@ -192,12 +195,12 @@ export async function handleWhatsAppMessageFailure(
   messageId,
   errorCode,
   errorTitle,
-  recipientId,
+  recipientId
 ) {
   const cached = messageIdToLeadCache.get(messageId);
   if (!cached) {
     console.log(
-      `[CRM] ⚠️ Message failure for ${messageId} but no cached lead mapping found.`,
+      `[CRM] ⚠️ Message failure for ${messageId} but no cached lead mapping found.`
     );
     return;
   }
@@ -225,7 +228,7 @@ export async function handleWhatsAppMessageFailure(
   }
 
   console.error(
-    `[CRM] ❌ ${errorMessage} (Lead: ${leadId}, Message ID: ${messageId})`,
+    `[CRM] ❌ ${errorMessage} (Lead: ${leadId}, Message ID: ${messageId})`
   );
 
   // Log to lead activity
@@ -242,7 +245,7 @@ const supabase = createClient(
       autoRefreshToken: true,
       persistSession: false,
     },
-  },
+  }
 );
 
 // --- AUTHENTICATION MIDDLEWARE ---
@@ -312,14 +315,14 @@ const requireAuth = async (req, res, next) => {
         if (Math.random() < 0.1) {
           // Log 10% of connection errors
           console.warn(
-            "[Auth Middleware] Connection timeout to Supabase (network issue). This may be temporary.",
+            "[Auth Middleware] Connection timeout to Supabase (network issue). This may be temporary."
           );
         }
       } else {
         // Log other auth errors normally
         console.error(
           "[Auth Middleware] Token validation error:",
-          errorMessage,
+          errorMessage
         );
       }
 
@@ -336,7 +339,7 @@ const requireAuth = async (req, res, next) => {
     if (profileError || !staffProfile) {
       console.error(
         "[Auth Middleware] Staff profile error:",
-        profileError?.message || "No profile",
+        profileError?.message || "No profile"
       );
       return res.status(403).json({ message: "Staff profile not found" });
     }
@@ -432,7 +435,7 @@ export async function logLeadActivity(
   leadId,
   type,
   description,
-  user = "System",
+  user = "System"
 ) {
   try {
     const { data: lead, error: fetchError } = await supabase
@@ -443,7 +446,7 @@ export async function logLeadActivity(
 
     if (fetchError) {
       console.error(
-        `[ActivityLogger] Failed to fetch lead ${leadId}: ${fetchError.message}`,
+        `[ActivityLogger] Failed to fetch lead ${leadId}: ${fetchError.message}`
       );
       return;
     }
@@ -468,17 +471,17 @@ export async function logLeadActivity(
 
     if (updateError) {
       console.error(
-        `[ActivityLogger] Failed to log activity for lead ${leadId}: ${updateError.message}`,
+        `[ActivityLogger] Failed to log activity for lead ${leadId}: ${updateError.message}`
       );
     } else {
       console.log(
-        `[ActivityLogger] Successfully logged '${type}' for lead ${leadId}.`,
+        `[ActivityLogger] Successfully logged '${type}' for lead ${leadId}.`
       );
     }
   } catch (error) {
     console.error(
       `[ActivityLogger] CRITICAL error for lead ${leadId}:`,
-      error.message,
+      error.message
     );
   }
 }
@@ -496,7 +499,7 @@ function setupGlobalListeners() {
         const record = payload.new || payload.record || payload;
         console.log(
           "[GlobalListener] New lead inserted:",
-          record?.id || record,
+          record?.id || record
         );
         try {
           if (!record || !record.customer_id) return;
@@ -510,7 +513,7 @@ function setupGlobalListeners() {
 
           if (!customer) {
             console.error(
-              `[GlobalListener] Customer not found for lead ${record.id}`,
+              `[GlobalListener] Customer not found for lead ${record.id}`
             );
             return;
           }
@@ -521,25 +524,25 @@ function setupGlobalListeners() {
               (act.type === "Summary Sent" || act.type === "WhatsApp Sent") &&
               (act.description?.includes("Summary sent") ||
                 act.description?.includes("template")) &&
-              new Date(act.timestamp) > new Date(Date.now() - 60000), // Last 60 seconds
+              new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
           );
 
           if (recentSummarySent) {
             console.log(
-              `[GlobalListener] Summary already sent recently for lead ${record.id}. Skipping duplicate.`,
+              `[GlobalListener] Summary already sent recently for lead ${record.id}. Skipping duplicate.`
             );
             // Still trigger assignment even if summary was sent (event-driven for this specific lead)
             try {
               assignLeadsAndGenerateItineraries(record.id).catch((e) =>
                 console.error(
                   "[GlobalListener] Error triggering assignment/itinerary:",
-                  e?.message || e,
-                ),
+                  e?.message || e
+                )
               );
             } catch (e) {
               console.error(
                 "[GlobalListener] Failed to call assignLeadsAndGenerateItineraries:",
-                e?.message || e,
+                e?.message || e
               );
             }
             return;
@@ -563,13 +566,13 @@ function setupGlobalListeners() {
             // );
             // await sendWelcomeWhatsapp(leadWithAssignees, customer, staff);
             console.log(
-              `[GlobalListener] Staff already assigned for lead ${record.id}. MTS summary auto-sending is disabled.`,
+              `[GlobalListener] Staff already assigned for lead ${record.id}. MTS summary auto-sending is disabled.`
             );
           } else {
             // No staff yet - trigger assignment for this specific lead (event-driven)
             // Summary will be sent by the lead_assignees INSERT listener when staff is assigned
             console.log(
-              `[GlobalListener] No staff assigned yet for lead ${record.id}. Triggering event-driven assignment. Summary will be sent when staff is assigned.`,
+              `[GlobalListener] No staff assigned yet for lead ${record.id}. Triggering event-driven assignment. Summary will be sent when staff is assigned.`
             );
 
             // Trigger assignment for this specific lead (much faster than batch processing)
@@ -577,23 +580,23 @@ function setupGlobalListeners() {
               assignLeadsAndGenerateItineraries(record.id).catch((e) =>
                 console.error(
                   "[GlobalListener] Error triggering assignment:",
-                  e?.message || e,
-                ),
+                  e?.message || e
+                )
               );
             } catch (e) {
               console.error(
                 "[GlobalListener] Failed to call assignLeadsAndGenerateItineraries:",
-                e?.message || e,
+                e?.message || e
               );
             }
           }
         } catch (err) {
           console.error(
             "[GlobalListener] Error handling new lead insert:",
-            err.message,
+            err.message
           );
         }
-      },
+      }
     );
 
     // UPDATE on leads: Handle status changes and itinerary generation
@@ -613,9 +616,7 @@ function setupGlobalListeners() {
           console.log(
             `[GlobalListener] UPDATE event received for lead ${
               newRec.id
-            }. Status: ${newRec.status}, Old status: ${
-              oldRec?.status || "N/A"
-            }`,
+            }. Status: ${newRec.status}, Old status: ${oldRec?.status || "N/A"}`
           );
 
           // Detect *actual* changes to destination, travel date, services, duration, passenger details, or status.
@@ -676,15 +677,15 @@ function setupGlobalListeners() {
           // This ensures feedback is sent when status is changed to Feedback
           if (newRec.status === "Feedback") {
             console.log(
-              `[GlobalListener] Lead ${newRec.id} status is Feedback. Checking if feedback needs to be sent...`,
+              `[GlobalListener] Lead ${newRec.id} status is Feedback. Checking if feedback needs to be sent...`
             );
             console.log(
-              `[GlobalListener] Lead ${newRec.id} - notified_status: ${newRec.notified_status}`,
+              `[GlobalListener] Lead ${newRec.id} - notified_status: ${newRec.notified_status}`
             );
 
             if (newRec.notified_status !== "Feedback") {
               console.log(
-                `[GlobalListener] Lead ${newRec.id} status changed to Feedback. Sending feedback template...`,
+                `[GlobalListener] Lead ${newRec.id} status changed to Feedback. Sending feedback template...`
               );
               try {
                 // Fetch customer for feedback
@@ -702,23 +703,23 @@ function setupGlobalListeners() {
                     .update({ notified_status: "Feedback" })
                     .eq("id", newRec.id);
                   console.log(
-                    `[GlobalListener] ✅ Feedback template sent for lead ${newRec.id}`,
+                    `[GlobalListener] ✅ Feedback template sent for lead ${newRec.id}`
                   );
                 } else {
                   console.log(
-                    `[GlobalListener] ⚠️ Customer not found for lead ${newRec.id}. Cannot send feedback.`,
+                    `[GlobalListener] ⚠️ Customer not found for lead ${newRec.id}. Cannot send feedback.`
                   );
                 }
               } catch (feedbackError) {
                 console.error(
                   `[GlobalListener] Error sending feedback template for lead ${newRec.id}:`,
                   feedbackError.message,
-                  feedbackError.stack,
+                  feedbackError.stack
                 );
               }
             } else {
               console.log(
-                `[GlobalListener] Lead ${newRec.id} already notified for Feedback status. Skipping.`,
+                `[GlobalListener] Lead ${newRec.id} already notified for Feedback status. Skipping.`
               );
             }
           }
@@ -728,7 +729,7 @@ function setupGlobalListeners() {
           // (But Feedback is already handled above)
           if (!oldRec) {
             console.log(
-              `[GlobalListener] Lead ${newRec.id} update received without previous row; no significant-field diff check possible. Skipping other actions.`,
+              `[GlobalListener] Lead ${newRec.id} update received without previous row; no significant-field diff check possible. Skipping other actions.`
             );
             return;
           }
@@ -763,7 +764,7 @@ function setupGlobalListeners() {
             isProcessingStatus
           ) {
             console.log(
-              `[GlobalListener] Lead ${newRec.id} status changed from Enquiry to Processing.`,
+              `[GlobalListener] Lead ${newRec.id} status changed from Enquiry to Processing.`
             );
             // Log this status change to lead activity
             try {
@@ -771,12 +772,12 @@ function setupGlobalListeners() {
                 newRec.id,
                 "Status Changed",
                 `Lead status changed from Enquiry to Processing.`,
-                "System",
+                "System"
               );
             } catch (logError) {
               console.error(
                 `[GlobalListener] Failed to log status change to activity:`,
-                logError.message,
+                logError.message
               );
             }
           }
@@ -807,15 +808,15 @@ function setupGlobalListeners() {
                 `[GlobalListener] Lead ${
                   newRec.id
                 } has changes but still missing required fields: ${Object.entries(
-                  validation.missingFields,
+                  validation.missingFields
                 )
                   .filter(([_, missing]) => missing)
                   .map(([field]) => field)
-                  .join(", ")}. Skipping MTS summary send.`,
+                  .join(", ")}. Skipping MTS summary send.`
               );
             } else {
               console.log(
-                `[GlobalListener] Lead ${newRec.id} has significant changes (Services: ${servicesChanged}, Destination: ${destinationChanged}, Duration: ${durationChanged}, Passenger Details: ${passengerDetailsChanged}, Travel Date Added: ${travelDateAdded}). All required fields filled. Sending updated summary to customer.`,
+                `[GlobalListener] Lead ${newRec.id} has significant changes (Services: ${servicesChanged}, Destination: ${destinationChanged}, Duration: ${durationChanged}, Passenger Details: ${passengerDetailsChanged}, Travel Date Added: ${travelDateAdded}). All required fields filled. Sending updated summary to customer.`
               );
 
               // Fetch customer and staff for sending summary
@@ -854,7 +855,7 @@ function setupGlobalListeners() {
                         act.type === "WhatsApp Sent") &&
                       (act.description?.includes("Summary sent") ||
                         act.description?.includes("template")) &&
-                      new Date(act.timestamp) > new Date(Date.now() - 60000), // Last 60 seconds
+                      new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
                   );
 
                   if (!recentSummarySent) {
@@ -882,33 +883,33 @@ function setupGlobalListeners() {
                     //   );
                     // }
                     console.log(
-                      `[GlobalListener] MTS summary auto-sending is disabled for lead ${newRec.id}`,
+                      `[GlobalListener] MTS summary auto-sending is disabled for lead ${newRec.id}`
                     );
                   } else {
                     console.log(
-                      `[GlobalListener] Summary already sent recently for lead ${newRec.id}. Skipping duplicate.`,
+                      `[GlobalListener] Summary already sent recently for lead ${newRec.id}. Skipping duplicate.`
                     );
                   }
                 }
               } else {
                 console.log(
-                  `[GlobalListener] ⚠️ Cannot send summary for lead ${newRec.id}: Customer phone not available.`,
+                  `[GlobalListener] ⚠️ Cannot send summary for lead ${newRec.id}: Customer phone not available.`
                 );
               }
             } // End of validation.isValid check
           } else if (statusChanged && !shouldSendSummary) {
             // Log when status changes but summary is NOT sent (as per requirement)
             console.log(
-              `[GlobalListener] Lead ${newRec.id} status changed from "${oldRec.status}" to "${newRec.status}". Summary NOT sent (only status change, no Services/Destination/Duration/Passenger Details changes).`,
+              `[GlobalListener] Lead ${newRec.id} status changed from "${oldRec.status}" to "${newRec.status}". Summary NOT sent (only status change, no Services/Destination/Duration/Passenger Details changes).`
             );
           }
         } catch (err) {
           console.error(
             "[GlobalListener] Error handling lead update:",
-            err.message,
+            err.message
           );
         }
-      },
+      }
     );
 
     // INSERT on lead_assignees: Handled by dedicated listenForManualAssignments() function
@@ -983,7 +984,7 @@ function validateMtsSummaryRequiredFields(lead) {
   ) {
     totalAdults = lead.requirements.rooms.reduce(
       (sum, room) => sum + (room.adults || 0),
-      0,
+      0
     );
   } else if (
     lead.requirements?.adults !== null &&
@@ -1000,7 +1001,7 @@ function validateMtsSummaryRequiredFields(lead) {
   ) {
     totalChildren = lead.requirements.rooms.reduce(
       (sum, room) => sum + (room.children || 0),
-      0,
+      0
     );
   } else if (
     lead.requirements?.children !== null &&
@@ -1033,21 +1034,21 @@ function generateLeadSummary(lead, customer, staff) {
   const today = new Date();
   const bookingId = `MTS-${lead.id}${String(today.getDate()).padStart(
     2,
-    "0",
+    "0"
   )}${String(today.getMonth() + 1).padStart(2, "0")}${String(
-    today.getFullYear(),
+    today.getFullYear()
   ).slice(-2)}`;
 
   // Calculate passengers
   const totalAdults =
     (lead.requirements?.rooms || []).reduce(
       (sum, room) => sum + (room.adults || 0),
-      0,
+      0
     ) || (lead.adults ? parseInt(lead.adults) : 0);
   const totalChildren =
     (lead.requirements?.rooms || []).reduce(
       (sum, room) => sum + (room.children || 0),
-      0,
+      0
     ) || (lead.children ? parseInt(lead.children) : 0);
 
   let passengerDetails = `${totalAdults} Adult(s)`;
@@ -1064,8 +1065,8 @@ function generateLeadSummary(lead, customer, staff) {
   if (lead.travel_date) {
     summaryParts.push(
       `Date of Travel: ${new Date(lead.travel_date).toLocaleDateString(
-        "en-GB",
-      )}`,
+        "en-GB"
+      )}`
     );
   }
   if (lead.duration) {
@@ -1092,12 +1093,12 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
 
   if (!customer.phone) {
     console.log(
-      `[CRM] ⚠️ Customer alert not sent for lead ${lead.id}: No phone number found for customer ${customer.id}.`,
+      `[CRM] ⚠️ Customer alert not sent for lead ${lead.id}: No phone number found for customer ${customer.id}.`
     );
     await logLeadActivity(
       lead.id,
       "WhatsApp Skipped",
-      `Welcome/confirmation template not sent to customer "${customer.first_name} ${customer.last_name}" - no phone number.`,
+      `Welcome/confirmation template not sent to customer "${customer.first_name} ${customer.last_name}" - no phone number.`
     );
     return;
   }
@@ -1108,12 +1109,12 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
       (act.type === "Summary Sent" || act.type === "WhatsApp Sent") &&
       (act.description?.includes("Summary sent") ||
         act.description?.includes("template")) &&
-      new Date(act.timestamp) > new Date(Date.now() - 60000), // Last 60 seconds
+      new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
   );
 
   if (recentSummarySent) {
     console.log(
-      `[CRM] ⚠️ Summary template already sent recently for lead ${lead.id}. Skipping duplicate.`,
+      `[CRM] ⚠️ Summary template already sent recently for lead ${lead.id}. Skipping duplicate.`
     );
     return false;
   }
@@ -1122,12 +1123,12 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
   const customerAlreadyConfirmed = (lead.activity || []).some(
     (act) =>
       act.type === "Customer Confirmed" &&
-      act.description?.includes("confirmed the enquiry via WhatsApp"),
+      act.description?.includes("confirmed the enquiry via WhatsApp")
   );
 
   if (customerAlreadyConfirmed && lead.status === "Confirmed") {
     console.log(
-      `[CRM] ⚠️ Customer already confirmed via WhatsApp button for lead ${lead.id}. Skipping duplicate summary send.`,
+      `[CRM] ⚠️ Customer already confirmed via WhatsApp button for lead ${lead.id}. Skipping duplicate summary send.`
     );
     return false;
   }
@@ -1139,17 +1140,17 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
     const requiredMissingFields = Object.entries(validation.missingFields)
       .filter(
         ([field, missing]) =>
-          missing && ["services", "destination", "duration"].includes(field),
+          missing && ["services", "destination", "duration"].includes(field)
       )
       .map(([field]) => field)
       .join(", ");
     console.log(
-      `[CRM] ⚠️ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`,
+      `[CRM] ⚠️ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`
     );
     await logLeadActivity(
       lead.id,
       "WhatsApp Skipped",
-      `MTS summary not sent - missing required fields: ${requiredMissingFields}. Please fill: Services, Destination, and Duration. (Date of Travel and Passenger Details are optional and can be filled by agents later.)`,
+      `MTS summary not sent - missing required fields: ${requiredMissingFields}. Please fill: Services, Destination, and Duration. (Date of Travel and Passenger Details are optional and can be filled by agents later.)`
     );
     return false;
   }
@@ -1158,13 +1159,13 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
   const optionalMissingFields = Object.entries(validation.missingFields)
     .filter(
       ([field, missing]) =>
-        missing && ["travelDate", "passengerDetails"].includes(field),
+        missing && ["travelDate", "passengerDetails"].includes(field)
     )
     .map(([field]) => field)
     .join(", ");
   if (optionalMissingFields) {
     console.log(
-      `[CRM] ℹ️ MTS summary will be sent for lead ${lead.id} but missing optional fields: ${optionalMissingFields}`,
+      `[CRM] ℹ️ MTS summary will be sent for lead ${lead.id} but missing optional fields: ${optionalMissingFields}`
     );
   }
 
@@ -1206,44 +1207,44 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
     if (cleaned.startsWith("+91") || cleaned.startsWith("919")) {
       sanitizedPhone = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
       console.log(
-        `[CRM] 📞 Manual phone normalization: ${customer.phone} → ${sanitizedPhone}`,
+        `[CRM] 📞 Manual phone normalization: ${customer.phone} → ${sanitizedPhone}`
       );
     } else if (cleaned.length === 10) {
       // 10 digits - assume India
       sanitizedPhone = `+91${cleaned}`;
       console.log(
-        `[CRM] 📞 Manual phone normalization (10 digits): ${customer.phone} → ${sanitizedPhone}`,
+        `[CRM] 📞 Manual phone normalization (10 digits): ${customer.phone} → ${sanitizedPhone}`
       );
     }
   }
 
   if (!sanitizedPhone) {
     console.error(
-      `[CRM] ❌ Could not normalize customer phone for lead ${lead.id}: ${customer.phone}`,
+      `[CRM] ❌ Could not normalize customer phone for lead ${lead.id}: ${customer.phone}`
     );
     await logLeadActivity(
       lead.id,
       "WhatsApp Failed",
-      `Failed to send welcome/confirmation template: Invalid phone number "${customer.phone}" for customer "${customer.first_name} ${customer.last_name}".`,
+      `Failed to send welcome/confirmation template: Invalid phone number "${customer.phone}" for customer "${customer.first_name} ${customer.last_name}".`
     );
     return false;
   }
 
   console.log(
-    `[CRM] 📞 Normalized phone to ${sanitizedPhone} for lead ${lead.id} (original: ${customer.phone})`,
+    `[CRM] 📞 Normalized phone to ${sanitizedPhone} for lead ${lead.id} (original: ${customer.phone})`
   );
 
   // Send mts_summary template (includes welcome message + confirmation buttons)
   // This is the ONLY message sent - it serves as both welcome and confirmation
   console.log(
-    `[CRM] 📤 Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`,
+    `[CRM] 📤 Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`
   );
 
   const result = await sendCrmWhatsappTemplate(
     sanitizedPhone,
     "mts_summary",
     "en",
-    templateComponents,
+    templateComponents
   );
 
   if (result) {
@@ -1257,26 +1258,26 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
         timestamp: Date.now(),
       });
       console.log(
-        `[CRM] ✅ mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id}. Message ID: ${messageId}`,
+        `[CRM] ✅ mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id}. Message ID: ${messageId}`
       );
     } else {
       console.log(
-        `[CRM] ✅ mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id} (no message ID in response).`,
+        `[CRM] ✅ mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id} (no message ID in response).`
       );
     }
     await logLeadActivity(
       lead.id,
       "Summary Sent",
-      `Welcome/confirmation template (mts_summary) sent to customer "${customer.first_name} ${customer.last_name}" via WhatsApp.`,
+      `Welcome/confirmation template (mts_summary) sent to customer "${customer.first_name} ${customer.last_name}" via WhatsApp.`
     );
   } else {
     console.error(
-      `[CRM] ❌ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved or phone number invalid.`,
+      `[CRM] ❌ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved or phone number invalid.`
     );
     await logLeadActivity(
       lead.id,
       "WhatsApp Failed",
-      `Failed to send welcome/confirmation template (mts_summary) to customer "${customer.first_name} ${customer.last_name}" at ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`,
+      `Failed to send welcome/confirmation template (mts_summary) to customer "${customer.first_name} ${customer.last_name}" at ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`
     );
     return false;
   }
@@ -1290,28 +1291,28 @@ async function sendStaffAssignmentNotification(
   assignee,
   assigneeType,
   primaryAssigneeName = null,
-  specificService = null,
+  specificService = null
 ) {
   console.log(
-    `[CRM] Preparing staff notification for ${assignee.name} (Type: ${assigneeType}, Lead: ${lead.id})`,
+    `[CRM] Preparing staff notification for ${assignee.name} (Type: ${assigneeType}, Lead: ${lead.id})`
   );
 
   if (!customer) {
     console.error(
-      `[CRM] Cannot send staff notification: Customer data missing for lead ${lead.id}`,
+      `[CRM] Cannot send staff notification: Customer data missing for lead ${lead.id}`
     );
     return;
   }
 
   if (!assignee.phone) {
     console.log(
-      `[CRM] ⚠️ Staff alert not sent for lead ${lead.id}: No phone number found for staff ${assignee.name}.`,
+      `[CRM] ⚠️ Staff alert not sent for lead ${lead.id}: No phone number found for staff ${assignee.name}.`
     );
     await logLeadActivity(
       lead.id,
       "WhatsApp Skipped",
       `Assignment notification not sent to staff "${assignee.name}" (no phone number).`,
-      "System",
+      "System"
     );
     return;
   }
@@ -1324,28 +1325,28 @@ async function sendStaffAssignmentNotification(
   const today = new Date();
   const leadNumber = `MTS-${lead.id}${String(today.getDate()).padStart(
     2,
-    "0",
+    "0"
   )}${String(today.getMonth() + 1).padStart(2, "0")}${String(
-    today.getFullYear(),
+    today.getFullYear()
   ).slice(-2)}`;
 
   // Services that don't require destination/travel date
   const nonTravelServices = ["Forex", "Passport", "Transport"];
   const hasNonTravelService = lead.services?.some((s) =>
-    nonTravelServices.includes(s),
+    nonTravelServices.includes(s)
   );
   const hasTravelService = lead.services?.some(
-    (s) => !nonTravelServices.includes(s),
+    (s) => !nonTravelServices.includes(s)
   );
 
   if (assigneeType === "primary") {
     const totalAdults = (lead.requirements?.rooms || []).reduce(
       (sum, room) => sum + room.adults,
-      0,
+      0
     );
     const totalChildren = (lead.requirements?.rooms || []).reduce(
       (sum, room) => sum + room.children,
-      0,
+      0
     );
     const allServices = (lead.services || []).join(", ") || "N/A";
 
@@ -1368,15 +1369,15 @@ async function sendStaffAssignmentNotification(
     if (hasTravelService && lead.travel_date) {
       messageParts.push(
         `*Travel Date:* ${new Date(lead.travel_date).toLocaleDateString(
-          "en-GB",
-        )}`,
+          "en-GB"
+        )}`
       );
     }
 
     // Only show passengers if it's a travel-related service
     if (hasTravelService && (totalAdults > 0 || totalChildren > 0)) {
       messageParts.push(
-        `*Passengers:* ${totalAdults} Adults, ${totalChildren} Children`,
+        `*Passengers:* ${totalAdults} Adults, ${totalChildren} Children`
       );
     }
 
@@ -1392,7 +1393,7 @@ async function sendStaffAssignmentNotification(
       }
       if (hasTravelService && lead.travel_date) {
         summaryParts.push(
-          `on ${new Date(lead.travel_date).toLocaleDateString("en-GB")}`,
+          `on ${new Date(lead.travel_date).toLocaleDateString("en-GB")}`
         );
       }
       if (allServices) {
@@ -1400,7 +1401,7 @@ async function sendStaffAssignmentNotification(
       }
       if (summaryParts.length > 0) {
         enquirySummary = `\n\n*Customer Enquiry Summary:*\n${summaryParts.join(
-          " ",
+          " "
         )}`;
       }
     }
@@ -1431,13 +1432,13 @@ async function sendStaffAssignmentNotification(
         ? cleaned
         : `+${cleaned}`;
       console.log(
-        `[CRM] Manual phone normalization for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`,
+        `[CRM] Manual phone normalization for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`
       );
     } else if (cleaned.length === 10) {
       // 10 digits - assume India
       sanitizedAssigneePhone = `+91${cleaned}`;
       console.log(
-        `[CRM] Manual phone normalization (10 digits) for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`,
+        `[CRM] Manual phone normalization (10 digits) for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`
       );
     } else if (cleaned.length > 10 && cleaned.length <= 15) {
       // International number - try adding + prefix
@@ -1445,14 +1446,14 @@ async function sendStaffAssignmentNotification(
         ? cleaned
         : `+${cleaned}`;
       console.log(
-        `[CRM] Manual phone normalization (international) for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`,
+        `[CRM] Manual phone normalization (international) for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`
       );
     }
   }
 
   if (sanitizedAssigneePhone) {
     console.log(
-      `[CRM] Attempting to send assignment alert to ${assignee.name} at ${sanitizedAssigneePhone} (original: ${assignee.phone}).`,
+      `[CRM] Attempting to send assignment alert to ${assignee.name} at ${sanitizedAssigneePhone} (original: ${assignee.phone}).`
     );
 
     let result = null;
@@ -1508,7 +1509,7 @@ async function sendStaffAssignmentNotification(
         };
 
         console.log(
-          `[CRM] 📤 Sending staff_lead_assigned template to ${sanitizedAssigneePhone}`,
+          `[CRM] 📤 Sending staff_lead_assigned template to ${sanitizedAssigneePhone}`
         );
         const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
           method: "POST",
@@ -1522,20 +1523,20 @@ async function sendStaffAssignmentNotification(
         const apiResult = await response.json();
         console.log(
           `[CRM] 📋 Full WhatsApp API Response for ${assignee.name}:`,
-          JSON.stringify(apiResult, null, 2),
+          JSON.stringify(apiResult, null, 2)
         );
 
         if (response.ok && apiResult.messages) {
           result = apiResult;
           const messageId = apiResult.messages[0]?.id;
           console.log(
-            `[CRM] ✅ Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`,
+            `[CRM] ✅ Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`
           );
 
           // Log warning if there are any issues in the response
           if (apiResult.messages[0]?.message_status) {
             console.log(
-              `[CRM] ⚠️ Message status: ${apiResult.messages[0].message_status}`,
+              `[CRM] ⚠️ Message status: ${apiResult.messages[0].message_status}`
             );
           }
         } else {
@@ -1547,10 +1548,10 @@ async function sendStaffAssignmentNotification(
           ) {
             console.error(
               `[CRM] 🔴 TOKEN EXPIRED: WhatsApp token has expired!`,
-              errorDetails.message || "",
+              errorDetails.message || ""
             );
             console.error(
-              `[CRM] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`,
+              `[CRM] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
             );
           }
           console.error(
@@ -1558,10 +1559,10 @@ async function sendStaffAssignmentNotification(
               assignee.name
             } (${sanitizedAssigneePhone}). Status: ${
               response.status
-            }, Error: ${JSON.stringify(errorDetails, null, 2)}`,
+            }, Error: ${JSON.stringify(errorDetails, null, 2)}`
           );
           throw new Error(
-            `WhatsApp API error: ${JSON.stringify(errorDetails)}`,
+            `WhatsApp API error: ${JSON.stringify(errorDetails)}`
           );
         }
       } else {
@@ -1596,7 +1597,7 @@ async function sendStaffAssignmentNotification(
         };
 
         console.log(
-          `[CRM] 📤 Sending staff_task_assigned template to ${assignee.name} (${sanitizedAssigneePhone})`,
+          `[CRM] 📤 Sending staff_task_assigned template to ${assignee.name} (${sanitizedAssigneePhone})`
         );
         const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
           method: "POST",
@@ -1610,20 +1611,20 @@ async function sendStaffAssignmentNotification(
         const apiResult = await response.json();
         console.log(
           `[CRM] 📋 Full WhatsApp API Response for ${assignee.name}:`,
-          JSON.stringify(apiResult, null, 2),
+          JSON.stringify(apiResult, null, 2)
         );
 
         if (response.ok && apiResult.messages) {
           result = apiResult;
           const messageId = apiResult.messages[0]?.id;
           console.log(
-            `[CRM] ✅ Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`,
+            `[CRM] ✅ Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`
           );
 
           // Log warning if there are any issues in the response
           if (apiResult.messages[0]?.message_status) {
             console.log(
-              `[CRM] ⚠️ Message status: ${apiResult.messages[0].message_status}`,
+              `[CRM] ⚠️ Message status: ${apiResult.messages[0].message_status}`
             );
           }
         } else {
@@ -1635,10 +1636,10 @@ async function sendStaffAssignmentNotification(
           ) {
             console.error(
               `[CRM] 🔴 TOKEN EXPIRED: WhatsApp token has expired!`,
-              errorDetails.message || "",
+              errorDetails.message || ""
             );
             console.error(
-              `[CRM] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`,
+              `[CRM] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
             );
           }
           console.error(
@@ -1646,24 +1647,24 @@ async function sendStaffAssignmentNotification(
               assignee.name
             } (${sanitizedAssigneePhone}). Status: ${
               response.status
-            }, Error: ${JSON.stringify(errorDetails, null, 2)}`,
+            }, Error: ${JSON.stringify(errorDetails, null, 2)}`
           );
           throw new Error(
-            `WhatsApp API error: ${JSON.stringify(errorDetails)}`,
+            `WhatsApp API error: ${JSON.stringify(errorDetails)}`
           );
         }
       }
     } catch (templateError) {
       console.warn(
         `[CRM] ⚠️ Template message failed for ${assignee.name}. Trying plain text fallback:`,
-        templateError.message,
+        templateError.message
       );
       // Fallback: Send as plain text WITHOUT URL (template should have the button)
       result = await sendCrmWhatsappText(sanitizedAssigneePhone, message);
 
       if (!result) {
         console.error(
-          `[CRM] ❌ Both template and fallback failed for ${assignee.name} (${sanitizedAssigneePhone}). Original error: ${templateError.message}`,
+          `[CRM] ❌ Both template and fallback failed for ${assignee.name} (${sanitizedAssigneePhone}). Original error: ${templateError.message}`
         );
       }
     }
@@ -1684,10 +1685,10 @@ async function sendStaffAssignmentNotification(
           lead.id,
           "Summary Sent to Staff",
           `Assignment summary sent to staff "${assignee.name}" (${sanitizedAssigneePhone}) via WhatsApp.`,
-          "System",
+          "System"
         );
         console.log(
-          `[CRM] ✅ Successfully sent assignment notification to ${assignee.name} for lead ${lead.id}. WhatsApp Message ID: ${messageId}`,
+          `[CRM] ✅ Successfully sent assignment notification to ${assignee.name} for lead ${lead.id}. WhatsApp Message ID: ${messageId}`
         );
       } else {
         // Result exists but no message ID - might be a false positive
@@ -1704,12 +1705,12 @@ async function sendStaffAssignmentNotification(
     }
   } else {
     console.log(
-      `[CRM] ⚠️ Staff alert not sent for lead ${lead.id}: Invalid phone number for staff ${assignee.name}.`,
+      `[CRM] ⚠️ Staff alert not sent for lead ${lead.id}: Invalid phone number for staff ${assignee.name}.`
     );
     await logLeadActivity(
       lead.id,
       "WhatsApp Skipped",
-      `Assignment notification not sent to staff "${assignee.name}" (invalid phone number).`,
+      `Assignment notification not sent to staff "${assignee.name}" (invalid phone number).`
     );
   }
 }
@@ -1802,7 +1803,7 @@ app.get("/api/initiate-call", async (req, res) => {
 
     if (staffError || !staff) {
       throw new Error(
-        staffError?.message || `Staff with ID ${staffId} not found.`,
+        staffError?.message || `Staff with ID ${staffId} not found.`
       );
     }
 
@@ -1815,7 +1816,7 @@ app.get("/api/initiate-call", async (req, res) => {
 
     if (leadError || !lead) {
       throw new Error(
-        leadError?.message || `Lead with ID ${leadId} not found.`,
+        leadError?.message || `Lead with ID ${leadId} not found.`
       );
     }
 
@@ -1843,7 +1844,7 @@ app.get("/api/initiate-call", async (req, res) => {
     }
 
     console.log(
-      `[CRM] Logged call initiation for lead ${leadId} by ${staff.name}.`,
+      `[CRM] Logged call initiation for lead ${leadId} by ${staff.name}.`
     );
 
     // Redirect to tel: link
@@ -1875,7 +1876,7 @@ app.get("/api/staff/branch/1", async (req, res) => {
         id: s.id,
         name: s.name,
         phone: s.phone,
-      })),
+      }))
     );
   } catch (err) {
     console.error("Error fetching Branch 1 staff list for website form:", err);
@@ -1940,7 +1941,7 @@ app.get("/api/log-customer-call", async (req, res) => {
     }
 
     console.log(
-      `[CRM] Logged customer call initiation for lead ${leadId} to ${staff.name}.`,
+      `[CRM] Logged customer call initiation for lead ${leadId} to ${staff.name}.`
     );
 
     const sanitizedStaffPhone = (staff.phone || "").replace(/[^0-9+]/g, "");
@@ -1972,7 +1973,7 @@ const getSeason = (dateString) => {
 const sendWelcomeEmail = async (lead, customer, staff) => {
   if (!customer.email) {
     console.log(
-      `Customer ${customer.id} has no email. Skipping welcome email for lead ${lead.id}.`,
+      `Customer ${customer.id} has no email. Skipping welcome email for lead ${lead.id}.`
     );
     return;
   }
@@ -2109,7 +2110,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
     if (specificLeadId) {
       // EVENT-DRIVEN: Process specific lead immediately (triggered by realtime listener)
       console.log(
-        `[Assignment] Event-driven: Processing lead ${specificLeadId}...`,
+        `[Assignment] Event-driven: Processing lead ${specificLeadId}...`
       );
 
       // Quick check: Is this lead already assigned?
@@ -2123,7 +2124,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
       if (existingAssignments && existingAssignments.length > 0) {
         console.log(
-          `[Assignment] Lead ${specificLeadId} already assigned, skipping.`,
+          `[Assignment] Lead ${specificLeadId} already assigned, skipping.`
         );
         return;
       }
@@ -2132,7 +2133,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
       const { data: leadData, error: leadError } = await supabase
         .from("leads")
         .select(
-          "id, status, destination, requirements, customer_id, branch_ids, created_at, last_updated, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name, email, phone, branch_id))",
+          "id, status, destination, requirements, customer_id, branch_ids, created_at, last_updated, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name, email, phone, branch_id))"
         )
         .eq("id", specificLeadId)
         .eq("status", "Enquiry")
@@ -2142,14 +2143,14 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
       if (!leadData) {
         console.log(
-          `[Assignment] Lead ${specificLeadId} not found or not in Enquiry status.`,
+          `[Assignment] Lead ${specificLeadId} not found or not in Enquiry status.`
         );
         return;
       }
 
       leadsToAssign = [leadData];
       console.log(
-        `[Assignment] Processing lead ${specificLeadId} for assignment.`,
+        `[Assignment] Processing lead ${specificLeadId} for assignment.`
       );
     } else {
       // BATCH MODE: Check for unassigned leads (fallback, rarely used now)
@@ -2181,7 +2182,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
       const assignedLeadIds = new Set(assignedLeads.map((a) => a.lead_id));
       const unassignedLeadIds = leadIds.filter(
-        (id) => !assignedLeadIds.has(id),
+        (id) => !assignedLeadIds.has(id)
       );
 
       if (unassignedLeadIds.length === 0) {
@@ -2193,7 +2194,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
       const { data: fetchedLeads, error: leadsError } = await supabase
         .from("leads")
         .select(
-          "id, status, destination, requirements, customer_id, branch_ids, created_at, last_updated, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name, email, phone, branch_id))",
+          "id, status, destination, requirements, customer_id, branch_ids, created_at, last_updated, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name, email, phone, branch_id))"
         )
         .in("id", unassignedLeadIds);
 
@@ -2206,7 +2207,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
       leadsToAssign = fetchedLeads;
       console.log(
-        `[Assignment] Found ${leadsToAssign.length} unassigned leads to process.`,
+        `[Assignment] Found ${leadsToAssign.length} unassigned leads to process.`
       );
     }
 
@@ -2215,7 +2216,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
     const { data: allStaff, error: staffError } = await supabase
       .from("staff")
       .select(
-        "id, name, email, phone, branch_id, status, role_id, leads_attended, destinations, services",
+        "id, name, email, phone, branch_id, status, role_id, leads_attended, destinations, services"
       )
       .eq("status", "Active")
       .neq("role_id", 1) // Exclude Super Admins
@@ -2264,7 +2265,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
         const customerData = lead.customer;
         if (!customerData) {
           console.warn(
-            `Could not find customer with ID ${lead.customer_id} for lead ${lead.id}. Skipping notifications.`,
+            `Could not find customer with ID ${lead.customer_id} for lead ${lead.id}. Skipping notifications.`
           );
         }
 
@@ -2273,7 +2274,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
         if (branchStaffPool.length === 0) {
           console.log(
-            `No staff available in branch ${leadBranchId} for lead ${lead.id}`,
+            `No staff available in branch ${leadBranchId} for lead ${lead.id}`
           );
           continue; // Skip to next lead
         }
@@ -2308,7 +2309,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
         if (eligiblePool.length === 0) {
           console.error(
-            `No eligible staff (after exclusions) found for lead ${lead.id} in branch ${leadBranchId}.`,
+            `No eligible staff (after exclusions) found for lead ${lead.id} in branch ${leadBranchId}.`
           );
           await supabase
             .from("leads")
@@ -2335,7 +2336,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
         // 3. If no specialists found, use the entire eligible pool as the fallback.
         if (assignmentPool.length === 0) {
           console.log(
-            `No specialists for '${primaryService}' found for lead ${lead.id}. Falling back to all eligible staff in branch.`,
+            `No specialists for '${primaryService}' found for lead ${lead.id}. Falling back to all eligible staff in branch.`
           );
           assignmentPool = eligiblePool;
         }
@@ -2347,7 +2348,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
         if (!primaryAssignee) {
           console.error(
-            `Could not find ANY eligible staff or manager to assign lead ${lead.id} in branch ${leadBranchId}.`,
+            `Could not find ANY eligible staff or manager to assign lead ${lead.id} in branch ${leadBranchId}.`
           );
           await supabase
             .from("leads")
@@ -2358,7 +2359,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
 
         // 5. Find secondary assignees for other services
         const otherServices = leadServices.filter(
-          (s) => s !== lead.services[0],
+          (s) => s !== lead.services[0]
         );
         for (const service of otherServices) {
           // Find a different, eligible staff member who specializes in this service
@@ -2405,7 +2406,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
         if (customerData) {
           // Small delay before sending staff notifications to prevent overwhelming WhatsApp API
           await new Promise((resolve) =>
-            setTimeout(resolve, BULK_MESSAGE_DELAY),
+            setTimeout(resolve, BULK_MESSAGE_DELAY)
           );
 
           // FALLBACK: Send MTS summary directly if realtime listener doesn't fire
@@ -2415,7 +2416,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
               (act.type === "Summary Sent" || act.type === "WhatsApp Sent") &&
               (act.description?.includes("Summary sent") ||
                 act.description?.includes("template")) &&
-              new Date(act.timestamp) > new Date(Date.now() - 60000), // Last 60 seconds
+              new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
           );
 
           if (!recentSummarySent) {
@@ -2434,7 +2435,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                     act.type === "WhatsApp Sent") &&
                   (act.description?.includes("Summary sent") ||
                     act.description?.includes("template")) &&
-                  new Date(act.timestamp) > new Date(Date.now() - 60000),
+                  new Date(act.timestamp) > new Date(Date.now() - 60000)
               );
 
               if (!freshSummarySent) {
@@ -2458,17 +2459,17 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                 //   );
                 // }
                 console.log(
-                  `[Task] MTS summary auto-sending is disabled for lead ${lead.id}`,
+                  `[Task] MTS summary auto-sending is disabled for lead ${lead.id}`
                 );
               } else {
                 console.log(
-                  `[Task] Summary already sent (detected in fresh lead data) for lead ${lead.id}. Skipping.`,
+                  `[Task] Summary already sent (detected in fresh lead data) for lead ${lead.id}. Skipping.`
                 );
               }
             }
           } else {
             console.log(
-              `[Task] Summary already sent recently for lead ${lead.id}. Skipping duplicate.`,
+              `[Task] Summary already sent recently for lead ${lead.id}. Skipping duplicate.`
             );
           }
 
@@ -2478,7 +2479,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
             lead,
             customerData,
             primaryAssignee,
-            "primary",
+            "primary"
           );
 
           // Send notifications to secondary assignees with delays between each
@@ -2503,13 +2504,13 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
             if (!specificService) {
               specificService =
                 (secondaryStaff.services || []).find((s) =>
-                  leadServicesSet.has(s),
+                  leadServicesSet.has(s)
                 ) || "a task for this lead";
             }
 
             // Delay between secondary staff notifications
             await new Promise((resolve) =>
-              setTimeout(resolve, BULK_MESSAGE_DELAY),
+              setTimeout(resolve, BULK_MESSAGE_DELAY)
             );
 
             await sendStaffAssignmentNotification(
@@ -2518,7 +2519,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
               secondaryStaff,
               "secondary",
               primaryAssignee.name,
-              specificService,
+              specificService
             );
           }
         }
@@ -2539,7 +2540,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
           })
           .eq("id", lead.id);
         console.log(
-          `Assigned lead ${lead.id} to Primary: ${primaryAssignee.name}`,
+          `Assigned lead ${lead.id} to Primary: ${primaryAssignee.name}`
         );
 
         // ----- START CONCURRENT TASKS -----
@@ -2551,7 +2552,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
             (async () => {
               try {
                 console.log(
-                  `[Task] Attempting supplier assignment for lead ${lead.id}.`,
+                  `[Task] Attempting supplier assignment for lead ${lead.id}.`
                 );
                 await supabase
                   .from("leads")
@@ -2572,10 +2573,10 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                   const destinationMatches = allSuppliers.filter((s) =>
                     (s.destinations || "")
                       .toLowerCase()
-                      .includes(leadDestination),
+                      .includes(leadDestination)
                   );
                   const verifiedMatches = destinationMatches.filter(
-                    (s) => s.is_verified,
+                    (s) => s.is_verified
                   );
 
                   let suppliersToAssign = [];
@@ -2583,7 +2584,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                     suppliersToAssign = verifiedMatches;
                   } else {
                     const unverifiedMatches = destinationMatches.filter(
-                      (s) => !s.is_verified,
+                      (s) => !s.is_verified
                     );
                     suppliersToAssign = unverifiedMatches;
                   }
@@ -2627,21 +2628,21 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                       })
                       .eq("id", lead.id);
                     console.log(
-                      `[Task] Successfully assigned ${suppliersToAssign.length} supplier(s) to lead ${lead.id}: ${supplierNames}.`,
+                      `[Task] Successfully assigned ${suppliersToAssign.length} supplier(s) to lead ${lead.id}: ${supplierNames}.`
                     );
                   } else {
                     console.log(
-                      `[Task] No matching supplier found for lead ${lead.id}.`,
+                      `[Task] No matching supplier found for lead ${lead.id}.`
                     );
                   }
                 }
               } catch (error) {
                 console.error(
                   `[Task] Error during supplier assignment for lead ${lead.id}:`,
-                  error.message,
+                  error.message
                 );
               }
-            })(),
+            })()
           );
         }
 
@@ -2677,13 +2678,13 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
               lead.id
             }. Services: [${lead.services.join(", ")}]. Status: ${
               lead.status
-            }. Generating itinerary.`,
+            }. Generating itinerary.`
           );
           concurrentTasks.push(
             (async () => {
               try {
                 console.log(
-                  `[Task] Starting AI itinerary v1 generation for lead ${lead.id}...`,
+                  `[Task] Starting AI itinerary v1 generation for lead ${lead.id}...`
                 );
 
                 const { data: fullLeadData, error: fullLeadError } =
@@ -2694,14 +2695,14 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                     .single();
                 if (fullLeadError)
                   throw new Error(
-                    `Failed to fetch full lead details: ${fullLeadError.message}`,
+                    `Failed to fetch full lead details: ${fullLeadError.message}`
                   );
 
                 const notesContent =
                   fullLeadData.notes && fullLeadData.notes.length > 0
                     ? fullLeadData.notes
                         .map(
-                          (note) => `- ${note.text.replace(/<[^>]*>?/gm, "")}`,
+                          (note) => `- ${note.text.replace(/<[^>]*>?/gm, "")}`
                         )
                         .join("\n")
                     : "No specific notes from customer.";
@@ -2715,10 +2716,10 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                   fullLeadData.starting_point || ""
                 ).toLowerCase();
                 const isIndianDestination = indianPlaces.some((place) =>
-                  destinationLower.includes(place.toLowerCase()),
+                  destinationLower.includes(place.toLowerCase())
                 );
                 const isIndianStartingPoint = indianPlaces.some((place) =>
-                  startingPointLower.includes(place.toLowerCase()),
+                  startingPointLower.includes(place.toLowerCase())
                 );
                 const isInternational =
                   !isIndianDestination || !isIndianStartingPoint;
@@ -3109,11 +3110,11 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                 if (aiResultText.startsWith("```")) {
                   const lines = aiResultText.split("\n");
                   const startIndex = lines.findIndex((line) =>
-                    line.trim().startsWith("```"),
+                    line.trim().startsWith("```")
                   );
                   const endIndex = lines.findIndex(
                     (line, idx) =>
-                      idx > startIndex && line.trim().startsWith("```"),
+                      idx > startIndex && line.trim().startsWith("```")
                   );
                   if (startIndex !== -1 && endIndex !== -1) {
                     aiResultText = lines
@@ -3134,7 +3135,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                 } catch (parseError) {
                   console.error(
                     `[Task] JSON parse error for lead ${lead.id}:`,
-                    parseError.message,
+                    parseError.message
                   );
                   const errorPos =
                     parseError.message.match(/position (\d+)/)?.[1];
@@ -3144,8 +3145,8 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                       `[Task] Error at position ${pos}, context:`,
                       aiResultText.substring(
                         Math.max(0, pos - 50),
-                        Math.min(aiResultText.length, pos + 50),
-                      ),
+                        Math.min(aiResultText.length, pos + 50)
+                      )
                     );
                   }
 
@@ -3212,15 +3213,15 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                   try {
                     aiResult = JSON.parse(sanitizedText);
                     console.log(
-                      `[Task] Successfully parsed JSON after sanitization for lead ${lead.id}`,
+                      `[Task] Successfully parsed JSON after sanitization for lead ${lead.id}`
                     );
                   } catch (retryError) {
                     console.error(
                       `[Task] Failed to parse JSON even after sanitization for lead ${lead.id}:`,
-                      retryError.message,
+                      retryError.message
                     );
                     throw new Error(
-                      `Failed to parse AI response as JSON: ${parseError.message}. Sanitization also failed: ${retryError.message}`,
+                      `Failed to parse AI response as JSON: ${parseError.message}. Sanitization also failed: ${retryError.message}`
                     );
                   }
                 }
@@ -3259,7 +3260,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                     hotels: [],
                     transfers: [],
                     activities: [],
-                  }),
+                  })
                 );
 
                 // Process flights, hotels, visa from AI result
@@ -3291,7 +3292,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                     ],
                     totalDuration: flight.duration || "",
                     price: flight.price || 0,
-                  }),
+                  })
                 );
 
                 const aiHotels = (aiResult.hotels || []).map((hotel, idx) => ({
@@ -3386,29 +3387,29 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                   .eq("id", lead.id);
 
                 console.log(
-                  `[Task] Successfully generated and created AI itinerary v1 for lead ${lead.id}.`,
+                  `[Task] Successfully generated and created AI itinerary v1 for lead ${lead.id}.`
                 );
               } catch (error) {
                 console.error(
                   `[Task] Error generating AI itinerary v1 for lead ${lead.id}:`,
-                  error.message,
+                  error.message
                 );
               }
-            })(),
+            })()
           );
         } else {
           // Log why itinerary generation was skipped
           if (lead.status === "Enquiry") {
             console.log(
-              `[Task] Skipping itinerary generation for lead ${lead.id}. Lead status is "Enquiry". Itineraries are only generated when status changes to "Processing".`,
+              `[Task] Skipping itinerary generation for lead ${lead.id}. Lead status is "Enquiry". Itineraries are only generated when status changes to "Processing".`
             );
           } else if (hasOnlyNonTourServices) {
             console.log(
               `[Task] Skipping itinerary generation for lead ${
                 lead.id
               }. Lead has only non-tour services: [${lead.services.join(
-                ", ",
-              )}]. Itinerary is only generated for Tour Package leads.`,
+                ", "
+              )}]. Itinerary is only generated for Tour Package leads.`
             );
           } else if (!hasTourPackage) {
             console.log(
@@ -3416,7 +3417,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
                 lead.id
               }. Tour Package not found in services: [${
                 lead.services?.join(", ") || "none"
-              }].`,
+              }].`
             );
           }
         }
@@ -3428,7 +3429,7 @@ const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
       } catch (error) {
         console.error(
           `[CRITICAL] Failed staff assignment process for lead ${lead.id}:`,
-          error.message,
+          error.message
         );
         // Cleanup status hello -if critical path fails. The 'finally' block will also run.
         await supabase
@@ -3479,7 +3480,7 @@ const fallbackAssignmentCheck = async () => {
           errorMsg.includes("500 Internal Server Error"))
       ) {
         console.warn(
-          "[FallbackAssignment] ⚠️ Network/Cloudflare error when fetching leads (likely temporary). Will retry on next cycle.",
+          "[FallbackAssignment] ⚠️ Network/Cloudflare error when fetching leads (likely temporary). Will retry on next cycle."
         );
       } else {
         console.error("[FallbackAssignment] Error fetching leads:", errorMsg);
@@ -3512,25 +3513,25 @@ const fallbackAssignmentCheck = async () => {
           errorMessage.includes("500 Internal Server Error"))
       ) {
         console.warn(
-          "[FallbackAssignment] ⚠️ Network/Cloudflare error when checking assignments (likely temporary). Will retry on next cycle.",
+          "[FallbackAssignment] ⚠️ Network/Cloudflare error when checking assignments (likely temporary). Will retry on next cycle."
         );
       } else {
         console.error(
           "[FallbackAssignment] Error checking assignments:",
-          errorMessage,
+          errorMessage
         );
       }
       return;
     }
 
     const assignedLeadIds = new Set(
-      (assignedLeads || []).map((a) => a.lead_id),
+      (assignedLeads || []).map((a) => a.lead_id)
     );
     const unassignedLeadIds = leadIds.filter((id) => !assignedLeadIds.has(id));
 
     if (unassignedLeadIds.length > 0) {
       console.log(
-        `[FallbackAssignment] Found ${unassignedLeadIds.length} unassigned lead(s), triggering assignment...`,
+        `[FallbackAssignment] Found ${unassignedLeadIds.length} unassigned lead(s), triggering assignment...`
       );
       // Process each unassigned lead (event-driven mode)
       for (const leadId of unassignedLeadIds) {
@@ -3542,7 +3543,7 @@ const fallbackAssignmentCheck = async () => {
             "Unknown error";
           console.error(
             `[FallbackAssignment] Error assigning lead ${leadId}:`,
-            errorMsg,
+            errorMsg
           );
         });
       }
@@ -3555,7 +3556,7 @@ const fallbackAssignmentCheck = async () => {
       "Unknown error";
     console.error(
       "[FallbackAssignment] Error in fallback check:",
-      errorMessage,
+      errorMessage
     );
   }
 };
@@ -3570,7 +3571,7 @@ setTimeout(fallbackAssignmentCheck, 5000); // Wait 5 seconds after startup
 async function sendDailyProductivitySummary() {
   try {
     console.log(
-      "[DailySummary] Starting daily productivity summary generation...",
+      "[DailySummary] Starting daily productivity summary generation..."
     );
 
     // Get today's date range in IST (Indian Standard Time - UTC+5:30)
@@ -3613,7 +3614,7 @@ async function sendDailyProductivitySummary() {
         // Use branch primary contact directly
         if (!branch.primary_contact) {
           console.log(
-            `[DailySummary] Branch ${branch.name} (ID: ${branch.id}) has no primary contact. Skipping.`,
+            `[DailySummary] Branch ${branch.name} (ID: ${branch.id}) has no primary contact. Skipping.`
           );
           continue;
         }
@@ -3644,7 +3645,7 @@ async function sendDailyProductivitySummary() {
         if (leadsError) {
           console.error(
             `[DailySummary] Error fetching leads for branch ${branch.name}:`,
-            leadsError.message,
+            leadsError.message
           );
           continue;
         }
@@ -3652,13 +3653,13 @@ async function sendDailyProductivitySummary() {
         // Calculate metrics (using filtered branchLeads instead of todayLeads)
         const totalLeads = branchLeads.length;
         const confirmedLeads = branchLeads.filter(
-          (l) => l.status === "Confirmed",
+          (l) => l.status === "Confirmed"
         ).length;
         const rejectedLeads = branchLeads.filter(
-          (l) => l.status === "Rejected",
+          (l) => l.status === "Rejected"
         ).length;
         const paidLeads = branchLeads.filter(
-          (l) => l.status === "Billing Completed",
+          (l) => l.status === "Billing Completed"
         ).length;
 
         // Calculate conversion rate
@@ -3704,7 +3705,7 @@ async function sendDailyProductivitySummary() {
 
         if (!sanitizedPhone) {
           console.log(
-            `[DailySummary] Invalid phone for branch ${branch.name} (primary_contact: ${branch.primary_contact}). Skipping.`,
+            `[DailySummary] Invalid phone for branch ${branch.name} (primary_contact: ${branch.primary_contact}). Skipping.`
           );
           continue;
         }
@@ -3738,7 +3739,7 @@ async function sendDailyProductivitySummary() {
           };
 
           console.log(
-            `[DailySummary] 📤 Sending template to ${branch.name} (${sanitizedPhone})`,
+            `[DailySummary] 📤 Sending template to ${branch.name} (${sanitizedPhone})`
           );
           const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
             method: "POST",
@@ -3753,7 +3754,7 @@ async function sendDailyProductivitySummary() {
           if (response.ok && apiResult.messages) {
             result = apiResult;
             console.log(
-              `[DailySummary] ✅ Template sent successfully to ${branch.name}`,
+              `[DailySummary] ✅ Template sent successfully to ${branch.name}`
             );
           } else {
             const errorDetails = apiResult.error || apiResult;
@@ -3764,10 +3765,10 @@ async function sendDailyProductivitySummary() {
             ) {
               console.error(
                 `[DailySummary] 🔴 TOKEN EXPIRED: WhatsApp token has expired!`,
-                errorDetails.message || "",
+                errorDetails.message || ""
               );
               console.error(
-                `[DailySummary] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`,
+                `[DailySummary] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
               );
             }
             console.warn(`[DailySummary] ⚠️ Template failed. Using fallback.`);
@@ -3776,18 +3777,18 @@ async function sendDailyProductivitySummary() {
         } catch (templateError) {
           // Fallback to plain text
           console.log(
-            `[DailySummary] Using plain text fallback for ${branch.name}`,
+            `[DailySummary] Using plain text fallback for ${branch.name}`
           );
           result = await sendCrmWhatsappText(sanitizedPhone, summaryMessage);
         }
 
         if (result) {
           console.log(
-            `[DailySummary] ✅ Summary sent to ${branch.name} (${sanitizedPhone})`,
+            `[DailySummary] ✅ Summary sent to ${branch.name} (${sanitizedPhone})`
           );
         } else {
           console.error(
-            `[DailySummary] ❌ Failed to send summary to ${branch.name} (${sanitizedPhone})`,
+            `[DailySummary] ❌ Failed to send summary to ${branch.name} (${sanitizedPhone})`
           );
         }
 
@@ -3796,7 +3797,7 @@ async function sendDailyProductivitySummary() {
       } catch (branchError) {
         console.error(
           `[DailySummary] Error processing branch ${branch.name}:`,
-          branchError.message,
+          branchError.message
         );
         continue;
       }
@@ -3806,7 +3807,7 @@ async function sendDailyProductivitySummary() {
   } catch (error) {
     console.error(
       "[DailySummary] Error in daily productivity summary:",
-      error.message,
+      error.message
     );
   }
 }
@@ -3851,8 +3852,8 @@ function scheduleDailySummary() {
   console.log(
     `[DailySummary] Scheduled for 8 PM IST (${istTarget.toLocaleString(
       "en-IN",
-      { timeZone: "Asia/Kolkata" },
-    )}). Will run in ${Math.round(msUntilTarget / 1000 / 60)} minutes.`,
+      { timeZone: "Asia/Kolkata" }
+    )}). Will run in ${Math.round(msUntilTarget / 1000 / 60)} minutes.`
   );
 
   setTimeout(() => {
@@ -3922,7 +3923,7 @@ function scheduleTboStaticDataRefresh() {
 
     // Convert IST back to UTC
     const utcTarget = new Date(
-      targetDate.getTime() - IST_OFFSET_HOURS * 60 * 60 * 1000,
+      targetDate.getTime() - IST_OFFSET_HOURS * 60 * 60 * 1000
     );
     return utcTarget;
   }
@@ -3930,7 +3931,7 @@ function scheduleTboStaticDataRefresh() {
   async function runTboRefresh() {
     const startTime = Date.now();
     console.log(
-      `\n[${new Date().toISOString()}] 🚀 Starting scheduled TBO static data refresh...\n`,
+      `\n[${new Date().toISOString()}] 🚀 Starting scheduled TBO static data refresh...\n`
     );
 
     try {
@@ -3950,13 +3951,13 @@ function scheduleTboStaticDataRefresh() {
           const cities = await fetchTboCityList(country.code);
           await storeTboCities(cities, country.code);
           allCities.push(
-            ...cities.map((c) => ({ ...c, countryCode: country.code })),
+            ...cities.map((c) => ({ ...c, countryCode: country.code }))
           );
           citiesProcessed += cities.length;
           await new Promise((resolve) => setTimeout(resolve, 300)); // Rate limiting
         } catch (error) {
           console.error(
-            `[TBO Refresh] ⚠️  Skipping cities for ${country.code}: ${error.message}`,
+            `[TBO Refresh] ⚠️  Skipping cities for ${country.code}: ${error.message}`
           );
           continue;
         }
@@ -3974,13 +3975,13 @@ function scheduleTboStaticDataRefresh() {
             hotels,
             city.code,
             city.name,
-            city.countryCode,
+            city.countryCode
           );
           totalHotels += hotels.length;
           await new Promise((resolve) => setTimeout(resolve, 300)); // Rate limiting
         } catch (error) {
           console.error(
-            `[TBO Refresh] ⚠️  Skipping hotels for city ${city.code}: ${error.message}`,
+            `[TBO Refresh] ⚠️  Skipping hotels for city ${city.code}: ${error.message}`
           );
           continue;
         }
@@ -3989,7 +3990,7 @@ function scheduleTboStaticDataRefresh() {
       const duration = ((Date.now() - startTime) / 1000 / 60).toFixed(2);
       console.log(`[TBO Refresh] ✅ Refresh completed!`);
       console.log(
-        `[TBO Refresh]   Countries: ${countries.length}, Cities: ${citiesProcessed}, Hotels: ${totalHotels}`,
+        `[TBO Refresh]   Countries: ${countries.length}, Cities: ${citiesProcessed}, Hotels: ${totalHotels}`
       );
       console.log(`[TBO Refresh]   Duration: ${duration} minutes\n`);
     } catch (error) {
@@ -4006,7 +4007,7 @@ function scheduleTboStaticDataRefresh() {
     const msUntilNext = nextRun.getTime() - Date.now();
 
     const istNextRun = new Date(
-      nextRun.getTime() + IST_OFFSET_HOURS * 60 * 60 * 1000,
+      nextRun.getTime() + IST_OFFSET_HOURS * 60 * 60 * 1000
     );
     const daysUntilNext = (msUntilNext / (1000 * 60 * 60 * 24)).toFixed(1);
 
@@ -4018,7 +4019,7 @@ function scheduleTboStaticDataRefresh() {
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-      })} IST (${daysUntilNext} days)`,
+      })} IST (${daysUntilNext} days)`
     );
 
     setTimeout(async () => {
@@ -4043,12 +4044,12 @@ async function sendFeedbackLinkMessage(lead, customer) {
     const feedbackSent = (lead.activity || []).some(
       (act) =>
         act.type === "Feedback Request Sent" &&
-        act.description?.includes("Feedback request sent to customer"),
+        act.description?.includes("Feedback request sent to customer")
     );
 
     if (feedbackSent) {
       console.log(
-        `[Feedback] Feedback link already sent for lead ${lead.id}. Skipping duplicate.`,
+        `[Feedback] Feedback link already sent for lead ${lead.id}. Skipping duplicate.`
       );
       return;
     }
@@ -4069,13 +4070,13 @@ async function sendFeedbackLinkMessage(lead, customer) {
 
     if (!sanitizedPhone) {
       console.warn(
-        `[Feedback] Could not normalize customer phone for lead ${lead.id}: ${customer.phone}. Skipping feedback message.`,
+        `[Feedback] Could not normalize customer phone for lead ${lead.id}: ${customer.phone}. Skipping feedback message.`
       );
       await logLeadActivity(
         lead.id,
         "Feedback Request Failed",
         `Failed to send feedback request to customer "${customer.first_name} ${customer.last_name}" (invalid phone number: '${customer.phone}').`,
-        "System",
+        "System"
       );
       return;
     }
@@ -4108,7 +4109,7 @@ async function sendFeedbackLinkMessage(lead, customer) {
       };
 
       console.log(
-        `[Feedback] 📤 Sending feedback_request template to ${sanitizedPhone}`,
+        `[Feedback] 📤 Sending feedback_request template to ${sanitizedPhone}`
       );
       const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
         method: "POST",
@@ -4123,20 +4124,20 @@ async function sendFeedbackLinkMessage(lead, customer) {
       if (response.ok && apiResult.messages) {
         result = apiResult;
         console.log(
-          `[Feedback] ✅ Template message sent successfully for lead ${lead.id}`,
+          `[Feedback] ✅ Template message sent successfully for lead ${lead.id}`
         );
       } else {
         console.warn(
           `[Feedback] ⚠️ Template message failed. Reason: ${JSON.stringify(
-            apiResult,
-          )}`,
+            apiResult
+          )}`
         );
         throw new Error(`WhatsApp API error: ${JSON.stringify(apiResult)}`);
       }
     } catch (templateError) {
       console.warn(
         `[Feedback] ⚠️ Template message failed for lead ${lead.id}. Trying plain text fallback:`,
-        templateError.message,
+        templateError.message
       );
       // Fallback: Send as plain text with link in message
       const feedbackLink =
@@ -4150,32 +4151,32 @@ async function sendFeedbackLinkMessage(lead, customer) {
         lead.id,
         "Feedback Request Sent",
         `Feedback request with Google review link sent to customer "${customer.first_name} ${customer.last_name}" via WhatsApp.`,
-        "System",
+        "System"
       );
       console.log(
-        `[Feedback] ✅ Feedback link sent successfully to customer for lead ${lead.id}`,
+        `[Feedback] ✅ Feedback link sent successfully to customer for lead ${lead.id}`
       );
     } else {
       await logLeadActivity(
         lead.id,
         "Feedback Request Failed",
         `Failed to send feedback request to customer "${customer.first_name} ${customer.last_name}" via WhatsApp.`,
-        "System",
+        "System"
       );
       console.error(
-        `[Feedback] ❌ Failed to send feedback link for lead ${lead.id}`,
+        `[Feedback] ❌ Failed to send feedback link for lead ${lead.id}`
       );
     }
   } catch (error) {
     console.error(
       `[Feedback] Error sending feedback link for lead ${lead.id}:`,
-      error.message,
+      error.message
     );
     await logLeadActivity(
       lead.id,
       "Feedback Request Failed",
       `Error sending feedback request: ${error.message}`,
-      "System",
+      "System"
     );
   }
 }
@@ -4194,7 +4195,7 @@ async function createRazorpayLinkForItinerary(lead, customer) {
 
     if (existingInvoice?.razorpay_payment_link_url) {
       console.log(
-        `[Razorpay Link] Payment link already exists for lead ${lead.id}. Skipping creation.`,
+        `[Razorpay Link] Payment link already exists for lead ${lead.id}. Skipping creation.`
       );
       return existingInvoice.razorpay_payment_link_url;
     }
@@ -4217,7 +4218,7 @@ async function createRazorpayLinkForItinerary(lead, customer) {
         existingInvoiceWithoutLink.total_amount ||
         5000;
       console.log(
-        `[Razorpay Link] Found existing invoice #${existingInvoiceWithoutLink.invoice_number} for lead ${lead.id}. Creating payment link.`,
+        `[Razorpay Link] Found existing invoice #${existingInvoiceWithoutLink.invoice_number} for lead ${lead.id}. Creating payment link.`
       );
     } else {
       // Create a minimal invoice for payment link
@@ -4265,20 +4266,20 @@ async function createRazorpayLinkForItinerary(lead, customer) {
       invoiceId = createdInvoice.id;
       amount = bookingFees;
       console.log(
-        `[Razorpay Link] Created invoice #${invoiceNumber} for lead ${lead.id}`,
+        `[Razorpay Link] Created invoice #${invoiceNumber} for lead ${lead.id}`
       );
     }
 
     // Generate Razorpay payment link
     if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
       console.warn(
-        `[Razorpay Link] Razorpay credentials not configured. Cannot generate payment link for lead ${lead.id}.`,
+        `[Razorpay Link] Razorpay credentials not configured. Cannot generate payment link for lead ${lead.id}.`
       );
       return null;
     }
 
     const auth = Buffer.from(
-      `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`,
+      `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`
     ).toString("base64");
 
     const phoneDigits = customer.phone.replace(/[^0-9]/g, "");
@@ -4312,11 +4313,11 @@ async function createRazorpayLinkForItinerary(lead, customer) {
     if (!razorpayResponse.ok) {
       console.error(
         `[Razorpay Link] Razorpay error for lead ${lead.id}:`,
-        JSON.stringify(razorpayData, null, 2),
+        JSON.stringify(razorpayData, null, 2)
       );
       throw new Error(
         razorpayData.error?.description ||
-          "Failed to create Razorpay payment link",
+          "Failed to create Razorpay payment link"
       );
     }
 
@@ -4333,26 +4334,26 @@ async function createRazorpayLinkForItinerary(lead, customer) {
     if (updateError) {
       console.error(
         `[Razorpay Link] Failed to update invoice with payment link:`,
-        updateError.message,
+        updateError.message
       );
     }
 
     console.log(
-      `[Razorpay Link] Generated Razorpay payment link for lead ${lead.id}: ${razorpayData.short_url}`,
+      `[Razorpay Link] Generated Razorpay payment link for lead ${lead.id}: ${razorpayData.short_url}`
     );
 
     await logLeadActivity(
       lead.id,
       "Payment Link Created",
       `Razorpay payment link created for itinerary. Payment link will be included in PDF.`,
-      "System",
+      "System"
     );
 
     return razorpayData.short_url;
   } catch (error) {
     console.error(
       `[Razorpay Link] Error creating payment link for lead ${lead.id}:`,
-      error.message,
+      error.message
     );
     // Don't throw - just log the error so itinerary generation can continue
     return null;
@@ -4368,7 +4369,7 @@ async function createRazorpayLinkForItinerary(lead, customer) {
 // Only handles backend actions like invoice creation (without sending messages)
 const checkLeadUpdatesAndNotify = async () => {
   console.log(
-    "[UpdateNotifier] Checking for lead changes (customer messages disabled)...",
+    "[UpdateNotifier] Checking for lead changes (customer messages disabled)..."
   );
   try {
     // Get leads that were modified in the last 5 minutes (buffer for consistency)
@@ -4378,7 +4379,7 @@ const checkLeadUpdatesAndNotify = async () => {
     const { data: recentLeads, error: leadsError } = await supabase
       .from("leads")
       .select(
-        "id, status, notified_status, customer_id, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name))",
+        "id, status, notified_status, customer_id, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name))"
       )
       .gt("last_updated", fiveMinutesAgo);
 
@@ -4389,7 +4390,7 @@ const checkLeadUpdatesAndNotify = async () => {
     }
 
     console.log(
-      `[UpdateNotifier] Found ${recentLeads.length} leads updated in last 90 seconds. Customer messages disabled.`,
+      `[UpdateNotifier] Found ${recentLeads.length} leads updated in last 90 seconds. Customer messages disabled.`
     );
 
     // For each lead, handle backend actions only (invoice creation, etc.) - NO customer messages
@@ -4412,7 +4413,7 @@ const checkLeadUpdatesAndNotify = async () => {
           lead.notified_status !== "Processing"
         ) {
           console.log(
-            `[UpdateNotifier] Lead ${lead.id} status changed to Processing. Marking as notified (no customer message).`,
+            `[UpdateNotifier] Lead ${lead.id} status changed to Processing. Marking as notified (no customer message).`
           );
           await supabase
             .from("leads")
@@ -4423,7 +4424,7 @@ const checkLeadUpdatesAndNotify = async () => {
         // Handle Feedback status - send feedback template
         if (lead.status === "Feedback" && lead.notified_status !== "Feedback") {
           console.log(
-            `[UpdateNotifier] Lead ${lead.id} status is Feedback. Sending feedback template...`,
+            `[UpdateNotifier] Lead ${lead.id} status is Feedback. Sending feedback template...`
           );
           try {
             await sendFeedbackLinkMessage(lead, customer);
@@ -4433,26 +4434,26 @@ const checkLeadUpdatesAndNotify = async () => {
               .update({ notified_status: "Feedback" })
               .eq("id", lead.id);
             console.log(
-              `[UpdateNotifier] ✅ Feedback template sent for lead ${lead.id}`,
+              `[UpdateNotifier] ✅ Feedback template sent for lead ${lead.id}`
             );
           } catch (feedbackError) {
             console.error(
               `[UpdateNotifier] Error sending feedback template for lead ${lead.id}:`,
               feedbackError.message,
-              feedbackError.stack,
+              feedbackError.stack
             );
           }
         }
       } catch (err) {
         console.error(
           `[UpdateNotifier] Error processing lead ${lead.id}:`,
-          err.message,
+          err.message
         );
       }
     }
 
     console.log(
-      "[UpdateNotifier] Lead update check complete (no customer messages sent).",
+      "[UpdateNotifier] Lead update check complete (no customer messages sent)."
     );
   } catch (error) {
     const errorMessage =
@@ -4476,7 +4477,7 @@ app.post("/api/lead/website", async (req, res) => {
     const formData = req.body.form_fields || req.body;
     console.log(
       "Received website lead data:",
-      JSON.stringify(formData, null, 2),
+      JSON.stringify(formData, null, 2)
     );
 
     // Robustly extract fields, checking for multiple possible names (e.g., 'name' or 'Name')
@@ -4516,7 +4517,7 @@ app.post("/api/lead/website", async (req, res) => {
       ? parseInt(formData.branch_id, 10)
       : 1;
     console.log(
-      `[Website Lead] Using branch_id: ${targetBranchId} (from formData.branch_id: ${formData.branch_id})`,
+      `[Website Lead] Using branch_id: ${targetBranchId} (from formData.branch_id: ${formData.branch_id})`
     );
 
     // 1. Find or Create Customer
@@ -4555,7 +4556,7 @@ app.post("/api/lead/website", async (req, res) => {
         "Invalid phone format:",
         phone,
         "normalized:",
-        phoneNormalized,
+        phoneNormalized
       );
       return res.status(400).json({
         message:
@@ -4569,8 +4570,8 @@ app.post("/api/lead/website", async (req, res) => {
       .or(
         `phone.eq.${phoneNormalized},phone.eq.${phoneNormalized.replace(
           /^\+/,
-          "",
-        )}`,
+          ""
+        )}`
       )
       .limit(1)
       .maybeSingle();
@@ -4588,17 +4589,17 @@ app.post("/api/lead/website", async (req, res) => {
       // Only add to shared_with_branch_ids if target branch is different from owner branch
       if (targetBranchId !== customerOwnerBranch) {
         const currentSharedBranches = new Set(
-          customer.shared_with_branch_ids || [],
+          customer.shared_with_branch_ids || []
         );
 
         // Add target branch to shared branches if not already present
         if (!currentSharedBranches.has(targetBranchId)) {
           currentSharedBranches.add(targetBranchId);
           updateFields.shared_with_branch_ids = Array.from(
-            currentSharedBranches,
+            currentSharedBranches
           );
           console.log(
-            `[Website Lead] Adding branch ${targetBranchId} to customer ${customer.id} shared_with_branch_ids. Customer owner branch: ${customerOwnerBranch}`,
+            `[Website Lead] Adding branch ${targetBranchId} to customer ${customer.id} shared_with_branch_ids. Customer owner branch: ${customerOwnerBranch}`
           );
         }
       }
@@ -4798,7 +4799,7 @@ app.post("/api/lead/website", async (req, res) => {
         } catch (err) {
           console.warn(
             "[Website Lead] Could not fetch staff for activity log:",
-            err.message,
+            err.message
           );
         }
       }
@@ -4926,7 +4927,7 @@ app.post("/api/lead/website", async (req, res) => {
           if (assignError) {
             console.warn(
               "[Website Lead] Failed to auto-assign staff from form:",
-              assignError.message,
+              assignError.message
             );
           } else {
             // Use the staff data we already fetched for activity log
@@ -4943,7 +4944,7 @@ app.post("/api/lead/website", async (req, res) => {
         } catch (assignErr) {
           console.warn(
             "[Website Lead] Exception while assigning staff:",
-            assignErr.message,
+            assignErr.message
           );
         }
       }
@@ -4953,7 +4954,7 @@ app.post("/api/lead/website", async (req, res) => {
     // If staff was assigned from form, send immediately. Otherwise, it will be sent when staff is auto-assigned.
     if (assignedStaff) {
       console.log(
-        `[Website Lead] Staff already assigned. Sending confirmation template for lead ${createdLead.id}.`,
+        `[Website Lead] Staff already assigned. Sending confirmation template for lead ${createdLead.id}.`
       );
       try {
         // Use default staff if assigned staff doesn't have phone
@@ -4971,12 +4972,12 @@ app.post("/api/lead/website", async (req, res) => {
         //   `[Website Lead] ✅ Confirmation template sent for lead ${createdLead.id}.`
         // );
         console.log(
-          `[Website Lead] MTS summary auto-sending is disabled for lead ${createdLead.id}.`,
+          `[Website Lead] MTS summary auto-sending is disabled for lead ${createdLead.id}.`
         );
       } catch (welcomeError) {
         console.error(
           `[Website Lead] ⚠️ Failed to send confirmation template for lead ${createdLead.id}:`,
-          welcomeError.message,
+          welcomeError.message
         );
         // Don't fail the request if WhatsApp sending fails
       }
@@ -5058,13 +5059,13 @@ const RAZORPAY_API_URL = "https://api.razorpay.com/v1";
 
 if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
   console.log(
-    "⚠️ WARNING: Razorpay Key ID or Key Secret is not defined. Invoicing will fail.",
+    "⚠️ WARNING: Razorpay Key ID or Key Secret is not defined. Invoicing will fail."
   );
 } else {
   console.log(`[Razorpay] Using Key ID: ${RAZORPAY_KEY_ID.substring(0, 8)}...`);
   // New: Add a debug log for the secret key's length.
   console.log(
-    `[Razorpay] Key Secret is loaded. Length: ${RAZORPAY_KEY_SECRET.length}`,
+    `[Razorpay] Key Secret is loaded. Length: ${RAZORPAY_KEY_SECRET.length}`
   );
 }
 
@@ -5076,7 +5077,7 @@ if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
 async function sendInvoiceWhatsappMessage(
   invoice,
   customer,
-  leadDestination = "",
+  leadDestination = ""
 ) {
   if (!customer?.phone) {
     console.warn("[Invoice WhatsApp] Customer phone missing; skipping send.");
@@ -5097,7 +5098,7 @@ async function sendInvoiceWhatsappMessage(
 
   if (!sanitizedPhone) {
     console.warn(
-      "[Invoice WhatsApp] Could not normalize phone number; skipping send.",
+      "[Invoice WhatsApp] Could not normalize phone number; skipping send."
     );
     return null;
   }
@@ -5156,19 +5157,19 @@ async function sendInvoiceWhatsappMessage(
       sanitizedPhone,
       WHATSAPP_INVOICE_TEMPLATE,
       WHATSAPP_TEMPLATE_LANG,
-      templateComponents,
+      templateComponents
     );
 
     if (templateResult) {
       console.log(
-        `[Invoice WhatsApp] ✅ Template "${WHATSAPP_INVOICE_TEMPLATE}" sent for invoice #${invoice.invoice_number}`,
+        `[Invoice WhatsApp] ✅ Template "${WHATSAPP_INVOICE_TEMPLATE}" sent for invoice #${invoice.invoice_number}`
       );
       return { result: templateResult, channel: "template" };
     }
   } catch (templateErr) {
     console.warn(
       `[Invoice WhatsApp] ⚠️ Template "${WHATSAPP_INVOICE_TEMPLATE}" failed, will fallback to CTA:`,
-      templateErr.message,
+      templateErr.message
     );
   }
 
@@ -5178,28 +5179,28 @@ async function sendInvoiceWhatsappMessage(
     },\n\nHere is your invoice #${invoice.invoice_number}${
       leadDestination ? ` for *${leadDestination}*` : ""
     }.\n\n*Total Amount:* ₹${(invoice.total_amount ?? 0).toLocaleString(
-      "en-IN",
+      "en-IN"
     )}\n*Balance Due:* ₹${(invoice.balance_due ?? 0).toLocaleString(
-      "en-IN",
+      "en-IN"
     )}\n\nPlease use the button below to complete your payment.`;
 
     const ctaResult = await sendCrmWhatsappCtaUrl(
       sanitizedPhone,
       messageText,
       "Pay Now",
-      linkUrl,
+      linkUrl
     );
 
     if (ctaResult) {
       console.log(
-        `[Invoice WhatsApp] ✅ CTA fallback sent for invoice #${invoice.invoice_number}`,
+        `[Invoice WhatsApp] ✅ CTA fallback sent for invoice #${invoice.invoice_number}`
       );
       return { result: ctaResult, channel: "cta" };
     }
   }
 
   console.warn(
-    `[Invoice WhatsApp] ❌ Failed to send invoice WhatsApp message for #${invoice.invoice_number}`,
+    `[Invoice WhatsApp] ❌ Failed to send invoice WhatsApp message for #${invoice.invoice_number}`
   );
   return null;
 }
@@ -5210,7 +5211,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     const formData = req.body;
     console.log(
       "Received WhatsApp lead data:",
-      JSON.stringify(formData, null, 2),
+      JSON.stringify(formData, null, 2)
     );
 
     const {
@@ -5264,7 +5265,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     console.log(
       `[CRM] 🏢 Processing lead for Branch ID: ${targetBranchId} (${
         targetBranchId === 1 ? "India" : "Australia"
-      })`,
+      })`
     );
 
     // 1. Find or Create Customer (do this first to get name if customer exists)
@@ -5304,7 +5305,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
         "Invalid phone format:",
         phone,
         "normalized:",
-        phoneNormalized,
+        phoneNormalized
       );
       return res.status(400).json({
         message:
@@ -5318,8 +5319,8 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       .or(
         `phone.eq.${phoneNormalized},phone.eq.${phoneNormalized.replace(
           /^\+/,
-          "",
-        )}`,
+          ""
+        )}`
       )
       .limit(1)
       .maybeSingle();
@@ -5410,7 +5411,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     // If no name provided, try to extract from conversation_summary_note
     if (!customerName && conversation_summary_note) {
       const extracted = extractNameAndCompanyFromText(
-        conversation_summary_note,
+        conversation_summary_note
       );
       if (extracted.name) {
         customerName = extracted.name;
@@ -5418,7 +5419,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
         console.log(
           `[WhatsApp Lead] Extracted name from conversation: "${customerName}"${
             extractedCompany ? `, Company: "${extractedCompany}"` : ""
-          }`,
+          }`
         );
       }
     }
@@ -5430,7 +5431,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       }`.trim();
       if (customerName) {
         console.log(
-          `[WhatsApp Lead] Using existing customer name: "${customerName}"`,
+          `[WhatsApp Lead] Using existing customer name: "${customerName}"`
         );
       }
     }
@@ -5438,7 +5439,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     // If still no name, return error asking for name
     if (!customerName) {
       console.error(
-        `[WhatsApp Lead] No name provided, could not extract from conversation, and no existing customer found for phone: ${phone}`,
+        `[WhatsApp Lead] No name provided, could not extract from conversation, and no existing customer found for phone: ${phone}`
       );
       return res.status(400).json({
         message: "Name is required. Please provide your name to proceed.",
@@ -5532,7 +5533,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     // Auto-detect tour region
     const destinationLower = (destination || "").toLowerCase();
     const isIndian = indianPlaces.some((place) =>
-      destinationLower.includes(place),
+      destinationLower.includes(place)
     );
     // Normalize requirements - set adults/children to null if not provided (agents will fill)
     const normalizedRequirements = {
@@ -5573,24 +5574,10 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       ],
       branch_ids: [targetBranchId],
       source: "whatsapp",
-      check_in_date: check_in_date || null,
-      check_out_date: check_out_date || null,
-      forex_currency_have: forex_currency_have || null,
-      forex_currency_required: forex_currency_required || null,
       created_at: new Date().toISOString(),
       last_updated: new Date().toISOString(),
-      starting_point: starting_point || null,
-      is_flexible_dates:
-        formData.is_flexible_dates === true ||
-        formData.is_flexible_dates === "true",
-      is_return_ticket:
-        formData.is_return_ticket === true ||
-        formData.is_return_ticket === "true",
-      // Only set air_travel_type for Air Ticket leads (omit if leads table has no such column)
-      ...(services && services.includes("Air Ticket") && air_travel_type
-        ? { air_travel_type: air_travel_type }
-        : {}),
-      // Omit budget, visa_type, passport_* – not in academy leads schema
+      // Omit check_in_date, check_out_date, forex_*, starting_point, air_travel_type,
+      // is_flexible_dates, is_return_ticket, budget, visa_type, passport_* – not in academy leads schema
     };
 
     const { data: createdLead, error: leadError } = await supabase
@@ -5604,7 +5591,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     // --- START TOUR PACKAGE AUTOMATION ---
     if ((createdLead.services || []).includes("Tour Package")) {
       console.log(
-        `[Tour Package Flow] Lead ${createdLead.id} created. Booking flow will start after agent assignment.`,
+        `[Tour Package Flow] Lead ${createdLead.id} created. Booking flow will start after agent assignment.`
       );
     }
     // --- END TOUR PACKAGE AUTOMATION ---
@@ -5656,7 +5643,7 @@ app.post("/api/invoicing/create-link", async (req, res) => {
     }
 
     const auth = Buffer.from(
-      `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`,
+      `${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`
     ).toString("base64");
     const response = await fetch(`${RAZORPAY_API_URL}/payment_links`, {
       method: "POST",
@@ -5684,7 +5671,7 @@ app.post("/api/invoicing/create-link", async (req, res) => {
     if (!response.ok) {
       console.error("Razorpay Error:", razorpayData);
       throw new Error(
-        razorpayData.error?.description || "Failed to create Razorpay link.",
+        razorpayData.error?.description || "Failed to create Razorpay link."
       );
     }
 
@@ -5700,7 +5687,7 @@ app.post("/api/invoicing/create-link", async (req, res) => {
     if (updateError) {
       console.error(
         "Failed to update invoice with Razorpay link:",
-        updateError,
+        updateError
       );
     }
 
@@ -5771,7 +5758,7 @@ app.post("/api/lead/notify-immediate", async (req, res) => {
     console.log(
       `[Notify API] WhatsApp sent for lead ${leadId} in ${
         sendEndTime - sendStartTime
-      }ms.`,
+      }ms.`
     );
     res.status(200).json({
       message: "WhatsApp notification sent successfully.",
@@ -5806,28 +5793,28 @@ app.post("/api/invoicing/send-whatsapp", async (req, res) => {
       !invoice.razorpay_payment_link_url
     ) {
       throw new Error(
-        error?.message || "Invoice, customer, or payment link not found.",
+        error?.message || "Invoice, customer, or payment link not found."
       );
     }
 
     const sendResult = await sendInvoiceWhatsappMessage(
       invoice,
       invoice.customer,
-      invoice.lead?.destination || "",
+      invoice.lead?.destination || ""
     );
 
     if (sendResult && invoice.lead_id) {
       await logLeadActivity(
         invoice.lead_id,
         "WhatsApp Sent",
-        `Invoice #${invoice.invoice_number} sent to customer via WhatsApp (${sendResult.channel}).`,
+        `Invoice #${invoice.invoice_number} sent to customer via WhatsApp (${sendResult.channel}).`
       );
     } else if (!sendResult) {
       if (invoice.lead_id)
         await logLeadActivity(
           invoice.lead_id,
           "WhatsApp Failed",
-          `Failed to send invoice #${invoice.invoice_number} to customer.`,
+          `Failed to send invoice #${invoice.invoice_number} to customer.`
         );
       throw new Error("Failed to send WhatsApp message via provider.");
     }
@@ -5895,7 +5882,7 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
     const { data: lead, error: leadError } = await supabase
       .from("leads")
       .select(
-        "*, customer:customers(*), all_assignees:lead_assignees(staff(*))",
+        "*, customer:customers(*), all_assignees:lead_assignees(staff(*))"
       )
       .eq("id", leadId)
       .single();
@@ -5941,12 +5928,12 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
       const requiredMissingFields = Object.entries(validation.missingFields)
         .filter(
           ([field, missing]) =>
-            missing && ["services", "destination", "duration"].includes(field),
+            missing && ["services", "destination", "duration"].includes(field)
         )
         .map(([field]) => field)
         .join(", ");
       console.log(
-        `[Send Summary] ⚠️ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`,
+        `[Send Summary] ⚠️ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`
       );
       return res.status(400).json({
         message: `Cannot send summary. Missing required fields: ${requiredMissingFields}. Please fill: Services, Destination, and Duration. (Date of Travel and Passenger Details are optional and can be filled by agents later.)`,
@@ -5983,14 +5970,14 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
     // Send mts_summary template ONLY (includes welcome message + confirmation buttons)
     // This is the single welcome/confirmation message - no separate messages needed
     console.log(
-      `[Send Summary] 📤 Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`,
+      `[Send Summary] 📤 Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`
     );
 
     const result = await sendCrmWhatsappTemplate(
       sanitizedPhone,
       "mts_summary",
       "en",
-      templateComponents,
+      templateComponents
     );
 
     if (result) {
@@ -6004,16 +5991,16 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
           timestamp: Date.now(),
         });
         console.log(
-          `[Send Summary] ✅ Template sent successfully. Message ID: ${messageId}, Lead ID: ${lead.id}`,
+          `[Send Summary] ✅ Template sent successfully. Message ID: ${messageId}, Lead ID: ${lead.id}`
         );
       } else {
         console.log(
-          `[Send Summary] ✅ Template sent successfully (no message ID in response) for lead ${lead.id}.`,
+          `[Send Summary] ✅ Template sent successfully (no message ID in response) for lead ${lead.id}.`
         );
       }
     } else {
       console.error(
-        `[Send Summary] ❌ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`,
+        `[Send Summary] ❌ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`
       );
     }
 
@@ -6021,7 +6008,7 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
       await logLeadActivity(
         lead.id,
         "Summary Sent",
-        `Summary sent to customer "${lead.customer.first_name} ${lead.customer.last_name}" via WhatsApp.`,
+        `Summary sent to customer "${lead.customer.first_name} ${lead.customer.last_name}" via WhatsApp.`
       );
     }
 
@@ -6068,7 +6055,7 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
         `
         *,
         itinerary_versions(*)
-      `,
+      `
       )
       .eq("id", itineraryId)
       .single();
@@ -6084,7 +6071,7 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
       itineraryMeta.itinerary_versions.length > 0
     ) {
       latestVersion = itineraryMeta.itinerary_versions.sort(
-        (a, b) => (b.version_number || 0) - (a.version_number || 0),
+        (a, b) => (b.version_number || 0) - (a.version_number || 0)
       )[0];
     }
 
@@ -6111,7 +6098,7 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
     // Always generate PDF on-the-fly when sending (PDFs are cleaned up daily)
     // This ensures we always send the latest version
     console.log(
-      `[Send Itinerary] Generating PDF on-the-fly for itinerary ${itineraryId}...`,
+      `[Send Itinerary] Generating PDF on-the-fly for itinerary ${itineraryId}...`
     );
 
     // Call the PDF generation endpoint internally to get the PDF buffer
@@ -6129,7 +6116,7 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
           itineraryId: itineraryId,
           leadId: leadId,
         }),
-      },
+      }
     );
 
     if (!pdfResponse.ok) {
@@ -6147,7 +6134,7 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
     }
 
     console.log(
-      `[Send Itinerary] ✅ PDF generated successfully (${pdfBuffer.length} bytes)`,
+      `[Send Itinerary] ✅ PDF generated successfully (${pdfBuffer.length} bytes)`
     );
 
     // Prepare template components
@@ -6201,7 +6188,7 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
       }/${Date.now()}-${fileName}`;
 
       console.log(
-        `[Send Itinerary] 📤 Uploading PDF to storage for public URL...`,
+        `[Send Itinerary] 📤 Uploading PDF to storage for public URL...`
       );
 
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -6213,7 +6200,7 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
 
       if (uploadError) {
         throw new Error(
-          `Failed to upload PDF to storage: ${uploadError.message}`,
+          `Failed to upload PDF to storage: ${uploadError.message}`
         );
       }
 
@@ -6243,32 +6230,32 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
       }
     } catch (uploadError) {
       console.error(
-        `[Send Itinerary] ❌ Error uploading PDF: ${uploadError.message}`,
+        `[Send Itinerary] ❌ Error uploading PDF: ${uploadError.message}`
       );
       throw new Error(`Failed to upload PDF: ${uploadError.message}`);
     }
 
     // Send mts_itinerary template
     console.log(
-      `[Send Itinerary] 📤 Sending mts_itinerary template to ${sanitizedPhone} for lead ${leadId}, itinerary ${itineraryId}.`,
+      `[Send Itinerary] 📤 Sending mts_itinerary template to ${sanitizedPhone} for lead ${leadId}, itinerary ${itineraryId}.`
     );
 
     const result = await sendCrmWhatsappTemplate(
       sanitizedPhone,
       "mts_itinerary", // Template name - user will create this
       "en",
-      templateComponents,
+      templateComponents
     );
 
     if (result) {
       const messageId = result.messages?.[0]?.id;
       if (messageId) {
         console.log(
-          `[Send Itinerary] ✅ Template sent successfully. Message ID: ${messageId}, Lead ID: ${leadId}, Itinerary ID: ${itineraryId}`,
+          `[Send Itinerary] ✅ Template sent successfully. Message ID: ${messageId}, Lead ID: ${leadId}, Itinerary ID: ${itineraryId}`
         );
       } else {
         console.log(
-          `[Send Itinerary] ✅ Template sent successfully (no message ID in response) for lead ${leadId}, itinerary ${itineraryId}.`,
+          `[Send Itinerary] ✅ Template sent successfully (no message ID in response) for lead ${leadId}, itinerary ${itineraryId}.`
         );
       }
 
@@ -6280,11 +6267,11 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
 
       if (updateError) {
         console.error(
-          `[Send Itinerary] ⚠️ Failed to update itinerary status: ${updateError.message}`,
+          `[Send Itinerary] ⚠️ Failed to update itinerary status: ${updateError.message}`
         );
       } else {
         console.log(
-          `[Send Itinerary] ✅ Updated itinerary ${itineraryId} status to "Sent"`,
+          `[Send Itinerary] ✅ Updated itinerary ${itineraryId} status to "Sent"`
         );
       }
 
@@ -6292,16 +6279,16 @@ app.post("/api/whatsapp/send-itinerary", async (req, res) => {
       await logLeadActivity(
         leadId,
         "Itinerary Sent",
-        `Itinerary sent to customer "${customerName}" via WhatsApp. Itinerary ID: ${itineraryId}, Destination: ${destination}, Duration: ${duration}.`,
+        `Itinerary sent to customer "${customerName}" via WhatsApp. Itinerary ID: ${itineraryId}, Destination: ${destination}, Duration: ${duration}.`
       );
     } else {
       console.error(
-        `[Send Itinerary] ❌ Failed to send mts_itinerary template for lead ${leadId} to ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`,
+        `[Send Itinerary] ❌ Failed to send mts_itinerary template for lead ${leadId} to ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`
       );
       await logLeadActivity(
         leadId,
         "WhatsApp Failed",
-        `Failed to send itinerary template (mts_itinerary) to customer "${customerName}" at ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`,
+        `Failed to send itinerary template (mts_itinerary) to customer "${customerName}" at ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`
       );
     }
 
@@ -6511,7 +6498,7 @@ app.get("/api/sessions/report", requireAuth, async (req, res) => {
           email,
           branch_id
         )
-      `,
+      `
       )
       .order("date", { ascending: false });
 
@@ -6587,7 +6574,7 @@ app.get("/api/sessions/report", requireAuth, async (req, res) => {
       sessions.forEach((session) => {
         const date = new Date(session.date);
         const monthKey = `${date.getFullYear()}-${String(
-          date.getMonth() + 1,
+          date.getMonth() + 1
         ).padStart(2, "0")}`;
 
         if (!monthMap.has(monthKey)) {
@@ -6660,7 +6647,7 @@ app.post("/api/feedback/send", async (req, res) => {
     // Check if feedback was already sent
     if (lead.notified_status === "Feedback") {
       console.log(
-        `[Feedback Endpoint] Feedback already sent for lead ${leadId}. Skipping.`,
+        `[Feedback Endpoint] Feedback already sent for lead ${leadId}. Skipping.`
       );
       return res.status(200).json({
         message: "Feedback already sent for this lead.",
@@ -6678,7 +6665,7 @@ app.post("/api/feedback/send", async (req, res) => {
       .eq("id", leadId);
 
     console.log(
-      `[Feedback Endpoint] ✅ Feedback template sent successfully for lead ${leadId}`,
+      `[Feedback Endpoint] ✅ Feedback template sent successfully for lead ${leadId}`
     );
 
     return res.status(200).json({
@@ -6714,7 +6701,7 @@ app.post("/api/razorpay-webhook", async (req, res) => {
 
       if (invoiceError || !invoice) {
         console.error(
-          `[Webhook] Invoice not found for payment_link_id ${paymentLinkId}. Error: ${invoiceError?.message}`,
+          `[Webhook] Invoice not found for payment_link_id ${paymentLinkId}. Error: ${invoiceError?.message}`
         );
         return res.status(404).json({ message: "Invoice not found." });
       }
@@ -6744,7 +6731,7 @@ app.post("/api/razorpay-webhook", async (req, res) => {
         });
       if (paymentInsertError) {
         throw new Error(
-          `Failed to insert payment record: ${paymentInsertError.message}`,
+          `Failed to insert payment record: ${paymentInsertError.message}`
         );
       }
 
@@ -6754,7 +6741,7 @@ app.post("/api/razorpay-webhook", async (req, res) => {
       );
       await recalculateInvoiceBalance(supabase, invoice.id);
       console.log(
-        `[Webhook] Invoice ${invoice.id} balance recalculated after payment.`,
+        `[Webhook] Invoice ${invoice.id} balance recalculated after payment.`
       );
 
       // 4. Update Lead Status
@@ -6784,7 +6771,7 @@ app.post("/api/razorpay-webhook", async (req, res) => {
         if (updateLeadError)
           throw new Error(`Failed to update lead: ${updateLeadError.message}`);
         console.log(
-          `[Webhook] Lead ${invoice.lead.id} status updated to "Billing Completed" and type to "Booked".`,
+          `[Webhook] Lead ${invoice.lead.id} status updated to "Billing Completed" and type to "Booked".`
         );
 
         // 5. Send confirmation to customer via WhatsApp
@@ -6802,7 +6789,7 @@ app.post("/api/razorpay-webhook", async (req, res) => {
     } catch (error) {
       console.error(
         `[Webhook] Error processing payment_link.paid event:`,
-        error.message,
+        error.message
       );
       return res
         .status(500)
@@ -6820,7 +6807,7 @@ const sendSupplierRequestEmails = async (
   staff,
   suppliers,
   branchEmail,
-  triggeredBy = "System (Automatic)",
+  triggeredBy = "System (Automatic)"
 ) => {
   if (!suppliers || suppliers.length === 0) {
     console.log(`No suppliers to email for lead ${lead.id}.`);
@@ -6828,24 +6815,24 @@ const sendSupplierRequestEmails = async (
   }
 
   console.log(
-    `Preparing to send ${suppliers.length} requirement emails for lead ${lead.id}...`,
+    `Preparing to send ${suppliers.length} requirement emails for lead ${lead.id}...`
   );
 
   const emailPromises = suppliers.map((supplier) => {
     const subject = `Madura Travel Service Requirement – ${
       lead.starting_point || "N/A"
     } to ${lead.destination} (${new Date(
-      lead.travel_date,
+      lead.travel_date
     ).toLocaleDateString()})`;
 
     const requirements = lead.requirements || {};
     const totalAdults = (requirements.rooms || []).reduce(
       (sum, room) => sum + room.adults,
-      0,
+      0
     );
     const totalChildren = (requirements.rooms || []).reduce(
       (sum, room) => sum + room.children,
-      0,
+      0
     );
 
     const roomConfigs = (requirements.rooms || [])
@@ -6853,7 +6840,7 @@ const sendSupplierRequestEmails = async (
         (room, index) =>
           `<li>Room ${index + 1}: ${room.adults} Adults, ${
             room.children
-          } Children</li>`,
+          } Children</li>`
       )
       .join("");
 
@@ -6871,7 +6858,7 @@ const sendSupplierRequestEmails = async (
                 }</li>
                 <li><strong>Destination:</strong> ${lead.destination}</li>
                 <li><strong>Date of Travel:</strong> ${new Date(
-                  lead.travel_date,
+                  lead.travel_date
                 ).toLocaleDateString("en-GB", {
                   day: "numeric",
                   month: "long",
@@ -6918,7 +6905,7 @@ const sendSupplierRequestEmails = async (
     };
 
     console.log(
-      `Sending email to ${supplier.company_name} (${supplier.email}) for lead ${lead.id}.`,
+      `Sending email to ${supplier.company_name} (${supplier.email}) for lead ${lead.id}.`
     );
     return transporter.sendMail(mailOptions);
   });
@@ -6926,7 +6913,7 @@ const sendSupplierRequestEmails = async (
   try {
     await Promise.all(emailPromises);
     console.log(
-      `All ${suppliers.length} emails sent successfully for lead ${lead.id}.`,
+      `All ${suppliers.length} emails sent successfully for lead ${lead.id}.`
     );
 
     // Create activity log entry
@@ -6950,7 +6937,7 @@ const sendSupplierRequestEmails = async (
     if (fetchError) {
       console.error(
         `Could not fetch lead ${lead.id} to update activity log for email sending:`,
-        fetchError.message,
+        fetchError.message
       );
     }
 
@@ -6971,17 +6958,17 @@ const sendSupplierRequestEmails = async (
     if (updateError) {
       console.error(
         `Failed to update email sent status/activity for lead ${lead.id}:`,
-        updateError,
+        updateError
       );
     } else {
       console.log(
-        `Updated email sent status and activity for lead ${lead.id}.`,
+        `Updated email sent status and activity for lead ${lead.id}.`
       );
     }
   } catch (error) {
     console.error(
       `Error sending one or more supplier emails for lead ${lead.id}:`,
-      error,
+      error
     );
     throw error;
   }
@@ -7009,7 +6996,7 @@ app.post("/api/email/send-supplier-request", async (req, res) => {
       staff,
       suppliers,
       branchEmail,
-      staff.name,
+      staff.name
     );
     res
       .status(200)
@@ -7036,13 +7023,13 @@ const listenForManualAssignments = () => {
   // Prevent infinite retry loops
   if (retryCount >= MAX_RETRIES) {
     console.error(
-      `[Realtime] ⚠️ Max retries (${MAX_RETRIES}) reached for lead assignee subscription. Stopping retries.`,
+      `[Realtime] ⚠️ Max retries (${MAX_RETRIES}) reached for lead assignee subscription. Stopping retries.`
     );
     retryCount = 0; // Reset after a delay
     setTimeout(() => {
       retryCount = 0;
       console.log(
-        "[Realtime] Retry counter reset. Will attempt subscription again on next trigger.",
+        "[Realtime] Retry counter reset. Will attempt subscription again on next trigger."
       );
     }, 60000); // Reset after 1 minute
     return null;
@@ -7056,14 +7043,14 @@ const listenForManualAssignments = () => {
       async (payload) => {
         console.log(
           "[Realtime] 🔔 New lead assignment detected:",
-          JSON.stringify(payload.new, null, 2),
+          JSON.stringify(payload.new, null, 2)
         );
         const { lead_id, staff_id } = payload.new;
 
         if (!lead_id || !staff_id) {
           console.error(
             "[Realtime] ❌ Invalid assignment payload - missing lead_id or staff_id:",
-            payload.new,
+            payload.new
           );
           return;
         }
@@ -7084,7 +7071,7 @@ const listenForManualAssignments = () => {
 
           if (checkError) {
             console.error(
-              `[Realtime] Error checking existing assignments: ${checkError.message}`,
+              `[Realtime] Error checking existing assignments: ${checkError.message}`
             );
             return;
           }
@@ -7093,7 +7080,7 @@ const listenForManualAssignments = () => {
           const mostRecentAssignment = existingAssignments?.[0];
           if (!mostRecentAssignment) {
             console.log(
-              `[Realtime] No assignment found for staff ${staff_id} to lead ${lead_id}. Skipping.`,
+              `[Realtime] No assignment found for staff ${staff_id} to lead ${lead_id}. Skipping.`
             );
             return;
           }
@@ -7107,8 +7094,8 @@ const listenForManualAssignments = () => {
           if (secondsDiff > 10) {
             console.log(
               `[Realtime] Assignment for staff ${staff_id} to lead ${lead_id} is older than 10 seconds (${secondsDiff.toFixed(
-                1,
-              )}s). Skipping notification (likely replay event).`,
+                1
+              )}s). Skipping notification (likely replay event).`
             );
             return;
           }
@@ -7117,20 +7104,20 @@ const listenForManualAssignments = () => {
           const { data: lead, error: leadError } = await supabase
             .from("leads")
             .select(
-              "*, customer:customers(*), all_assignees:lead_assignees(staff(*))",
+              "*, customer:customers(*), all_assignees:lead_assignees(staff(*))"
             )
             .eq("id", lead_id)
             .single();
 
           if (leadError || !lead) {
             console.error(
-              `[Realtime] Error fetching lead details for notification: ${leadError?.message}`,
+              `[Realtime] Error fetching lead details for notification: ${leadError?.message}`
             );
             return;
           }
 
           const newlyAssignedStaff = lead.all_assignees.find(
-            (a) => a.staff.id === staff_id,
+            (a) => a.staff.id === staff_id
           )?.staff;
           const customer = lead.customer;
 
@@ -7140,32 +7127,32 @@ const listenForManualAssignments = () => {
                 lead.all_assignees?.length || 0
               }, Assignee IDs: ${
                 lead.all_assignees?.map((a) => a.staff?.id).join(", ") || "none"
-              }`,
+              }`
             );
             await logLeadActivity(
               lead_id,
               "WhatsApp Failed",
               `Failed to find staff member (ID: ${staff_id}) for assignment notification.`,
-              "System",
+              "System"
             );
             return;
           }
 
           if (!customer) {
             console.error(
-              `[Realtime] ❌ Could not find customer for lead ${lead_id}. Customer ID: ${lead.customer_id}`,
+              `[Realtime] ❌ Could not find customer for lead ${lead_id}. Customer ID: ${lead.customer_id}`
             );
             await logLeadActivity(
               lead_id,
               "WhatsApp Failed",
               `Failed to find customer (ID: ${lead.customer_id}) for assignment notification.`,
-              "System",
+              "System"
             );
             return;
           }
 
           console.log(
-            `[Realtime] ✅ Found staff: ${newlyAssignedStaff.name} (Phone: ${newlyAssignedStaff.phone}), Customer: ${customer.first_name} ${customer.last_name}`,
+            `[Realtime] ✅ Found staff: ${newlyAssignedStaff.name} (Phone: ${newlyAssignedStaff.phone}), Customer: ${customer.first_name} ${customer.last_name}`
           );
 
           // Check if we've already sent a notification for this assignment recently
@@ -7174,12 +7161,12 @@ const listenForManualAssignments = () => {
             (act) =>
               act.type === "Summary Sent to Staff" &&
               act.description?.includes(newlyAssignedStaff.name) &&
-              new Date(act.timestamp) > new Date(Date.now() - 60000), // Last 60 seconds
+              new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
           );
 
           if (recentNotification) {
             console.log(
-              `[Realtime] Notification already sent to ${newlyAssignedStaff.name} for lead ${lead_id} in last 60 seconds. Skipping duplicate.`,
+              `[Realtime] Notification already sent to ${newlyAssignedStaff.name} for lead ${lead_id} in last 60 seconds. Skipping duplicate.`
             );
             return;
           }
@@ -7187,7 +7174,7 @@ const listenForManualAssignments = () => {
           if (lead.all_assignees.length === 1) {
             // If this is the only assignee, they are the primary.
             console.log(
-              `[Realtime] Primary staff assigned. Checking if MTS summary needs to be sent for lead ${lead.id}`,
+              `[Realtime] Primary staff assigned. Checking if MTS summary needs to be sent for lead ${lead.id}`
             );
 
             // Check if summary was already sent (prevent duplicates)
@@ -7196,7 +7183,7 @@ const listenForManualAssignments = () => {
                 (act.type === "Summary Sent" || act.type === "WhatsApp Sent") &&
                 (act.description?.includes("Summary sent") ||
                   act.description?.includes("template")) &&
-                new Date(act.timestamp) > new Date(Date.now() - 60000), // Last 60 seconds
+                new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
             );
 
             if (!recentSummarySent) {
@@ -7224,11 +7211,11 @@ const listenForManualAssignments = () => {
               //   );
               // }
               console.log(
-                `[Realtime] MTS summary auto-sending is disabled for lead ${lead.id}`,
+                `[Realtime] MTS summary auto-sending is disabled for lead ${lead.id}`
               );
             } else {
               console.log(
-                `[Realtime] Summary already sent recently for lead ${lead.id}. Skipping duplicate.`,
+                `[Realtime] Summary already sent recently for lead ${lead.id}. Skipping duplicate.`
               );
             }
 
@@ -7237,7 +7224,7 @@ const listenForManualAssignments = () => {
               lead,
               customer,
               newlyAssignedStaff,
-              "primary",
+              "primary"
             );
           } else {
             // Multiple assignees exist. Assume this new one is secondary.
@@ -7245,7 +7232,7 @@ const listenForManualAssignments = () => {
             const primaryAssignee = lead.all_assignees[0]?.staff;
             if (!primaryAssignee) {
               console.error(
-                `[Realtime] Could not determine a primary assignee for lead ${lead.id}.`,
+                `[Realtime] Could not determine a primary assignee for lead ${lead.id}.`
               );
               return;
             }
@@ -7253,7 +7240,7 @@ const listenForManualAssignments = () => {
             // To provide a helpful message, infer the specific service this new staff member is likely responsible for.
             const primaryServices = new Set(primaryAssignee.services || []);
             const secondaryServices = new Set(
-              newlyAssignedStaff.services || [],
+              newlyAssignedStaff.services || []
             );
             const leadServices = new Set(lead.services || []);
 
@@ -7269,12 +7256,12 @@ const listenForManualAssignments = () => {
             if (!specificService) {
               specificService =
                 (newlyAssignedStaff.services || []).find((s) =>
-                  leadServices.has(s),
+                  leadServices.has(s)
                 ) || "a task for this lead";
             }
 
             console.log(
-              `[Realtime] Sending SECONDARY assignment notification to ${newlyAssignedStaff.name} (ID: ${newlyAssignedStaff.id}, Phone: ${newlyAssignedStaff.phone}) for lead ${lead.id}`,
+              `[Realtime] Sending SECONDARY assignment notification to ${newlyAssignedStaff.name} (ID: ${newlyAssignedStaff.id}, Phone: ${newlyAssignedStaff.phone}) for lead ${lead.id}`
             );
             try {
               await sendStaffAssignmentNotification(
@@ -7283,18 +7270,18 @@ const listenForManualAssignments = () => {
                 newlyAssignedStaff,
                 "secondary",
                 primaryAssignee.name,
-                specificService,
+                specificService
               );
             } catch (notifError) {
               console.error(
                 `[Realtime] Error sending secondary assignment notification:`,
-                notifError.message,
+                notifError.message
               );
               await logLeadActivity(
                 lead.id,
                 "WhatsApp Failed",
                 `Failed to send assignment notification to staff "${newlyAssignedStaff.name}": ${notifError.message}`,
-                "System",
+                "System"
               );
             }
           }
@@ -7308,7 +7295,7 @@ const listenForManualAssignments = () => {
           console.error(
             "[Realtime] ❌ Error processing manual assignment notification:",
             errorMessage,
-            errorStack,
+            errorStack
           );
           // Log to lead activity if we have lead_id
           if (payload?.new?.lead_id) {
@@ -7317,22 +7304,22 @@ const listenForManualAssignments = () => {
                 payload.new.lead_id,
                 "WhatsApp Failed",
                 `Error processing assignment notification: ${error.message}. Check server logs for details.`,
-                "System",
+                "System"
               );
             } catch (logError) {
               console.error(
                 "[Realtime] Failed to log error to activity:",
-                logError.message,
+                logError.message
               );
             }
           }
         }
-      },
+      }
     )
     .subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
         console.log(
-          "[Realtime] ✅ Listening for manual lead assignments to send notifications.",
+          "[Realtime] ✅ Listening for manual lead assignments to send notifications."
         );
         retryCount = 0; // Reset on success
       } else {
@@ -7349,13 +7336,13 @@ const listenForManualAssignments = () => {
         ) {
           console.error(
             `[Realtime] ❌ Failed to subscribe to lead assignee changes (attempt ${retryCount}/${MAX_RETRIES}):`,
-            errorMessage,
+            errorMessage
           );
         } else {
           // Log mismatch error less frequently (every 5th attempt)
           if (retryCount % 5 === 0) {
             console.warn(
-              `[Realtime] ⚠️ Realtime subscription mismatch error (attempt ${retryCount}/${MAX_RETRIES}). This is a known Supabase issue and may resolve automatically.`,
+              `[Realtime] ⚠️ Realtime subscription mismatch error (attempt ${retryCount}/${MAX_RETRIES}). This is a known Supabase issue and may resolve automatically.`
             );
           }
         }
@@ -7367,7 +7354,7 @@ const listenForManualAssignments = () => {
             console.log(
               `[Realtime] Retrying subscription to lead assignee changes... (attempt ${
                 retryCount + 1
-              }/${MAX_RETRIES})`,
+              }/${MAX_RETRIES})`
             );
             listenForManualAssignments();
           }
@@ -7436,7 +7423,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
             if (err.code === "LIMIT_FILE_SIZE") {
               console.error(
                 "[Job Applicants] ❌ File size error:",
-                err.message,
+                err.message
               );
               return res.status(413).json({
                 message: "File size too large. Maximum size is 10MB.",
@@ -7480,7 +7467,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
         console.log(
           `[Job Applicants] Role Applied For: ${
             role_applied_for || "Not specified"
-          }`,
+          }`
         );
         console.log(`[Job Applicants] Email: ${email}`);
         console.log(`[Job Applicants] Phone: ${phone}`);
@@ -7545,12 +7532,12 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
             finalResumeFileName = fileNameToUse;
             finalResumeFileType = fileTypeToUse;
             console.log(
-              `[Job Applicants] ✅ Resume uploaded successfully: ${fileName}`,
+              `[Job Applicants] ✅ Resume uploaded successfully: ${fileName}`
             );
           } catch (uploadErr) {
             console.error(
               "[Job Applicants] ❌ Resume upload error:",
-              uploadErr,
+              uploadErr
             );
             return res.status(500).json({
               message: `Failed to upload resume: ${uploadErr.message}`,
@@ -7594,7 +7581,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
         if (applicantError) throw applicantError;
 
         console.log(
-          `[Job Applicants] ✅ Application created successfully with ID: ${createdApplicant.id}`,
+          `[Job Applicants] ✅ Application created successfully with ID: ${createdApplicant.id}`
         );
 
         res.status(201).json({
@@ -7604,7 +7591,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
       } catch (error) {
         console.error(
           "[Job Applicants] ❌ Error in processApplication:",
-          error,
+          error
         );
         res.header("Access-Control-Allow-Origin", "*");
         return res.status(500).json({
@@ -7845,7 +7832,7 @@ app.put("/api/job-applicants/:id", requireAuth, async (req, res) => {
     if (updateError) throw updateError;
 
     console.log(
-      `[Job Applicants] Applicant ${id} updated by ${currentUser.name}`,
+      `[Job Applicants] Applicant ${id} updated by ${currentUser.name}`
     );
 
     res.json({
@@ -7897,12 +7884,12 @@ app.delete("/api/job-applicants/:id", requireAuth, async (req, res) => {
 
         if (deleteError) {
           console.warn(
-            `[Job Applicants] Failed to delete resume file: ${deleteError.message}`,
+            `[Job Applicants] Failed to delete resume file: ${deleteError.message}`
           );
         }
       } catch (fileErr) {
         console.warn(
-          `[Job Applicants] Error deleting resume file: ${fileErr.message}`,
+          `[Job Applicants] Error deleting resume file: ${fileErr.message}`
         );
       }
     }
@@ -7915,7 +7902,7 @@ app.delete("/api/job-applicants/:id", requireAuth, async (req, res) => {
     if (deleteError) throw deleteError;
 
     console.log(
-      `[Job Applicants] Applicant ${id} deleted by ${currentUser.name}`,
+      `[Job Applicants] Applicant ${id} deleted by ${currentUser.name}`
     );
 
     res.json({ message: "Applicant deleted successfully." });
@@ -7965,7 +7952,7 @@ app.get(
       if (v.expires < Date.now()) subAgentCaptchaStore.delete(k);
     }
     res.json({ id, code });
-  },
+  }
 );
 
 app.options("/api/sub-agent-registrations/public", (req, res) => {
@@ -8103,7 +8090,7 @@ app.post(
         message: error.message || "Failed to submit registration.",
       });
     }
-  },
+  }
 );
 
 app.get("/api/sub-agent-registrations", requireAuth, async (req, res) => {
@@ -8354,7 +8341,7 @@ app.delete(
         message: error.message || "Failed to delete sub-agent registration.",
       });
     }
-  },
+  }
 );
 
 // --- VISAS API ENDPOINTS ---
@@ -8476,11 +8463,11 @@ app.get("/api/visas/template", requireAuth, async (req, res) => {
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     res.setHeader(
       "Content-Disposition",
-      'attachment; filename="Visa_Bulk_Upload_Template.xlsx"',
+      'attachment; filename="Visa_Bulk_Upload_Template.xlsx"'
     );
 
     await workbook.xlsx.write(res);
@@ -8820,7 +8807,7 @@ app.post(
       if (req.fileValidationError) {
         console.error(
           "[Visas Bulk Upload] File validation error:",
-          req.fileValidationError,
+          req.fileValidationError
         );
         return res.status(400).json({ message: req.fileValidationError });
       }
@@ -8831,7 +8818,7 @@ app.post(
       }
 
       console.log(
-        `[Visas Bulk Upload] File received: ${req.file.originalname}, size: ${req.file.size} bytes, mimetype: ${req.file.mimetype}`,
+        `[Visas Bulk Upload] File received: ${req.file.originalname}, size: ${req.file.size} bytes, mimetype: ${req.file.mimetype}`
       );
 
       let workbook;
@@ -8851,7 +8838,7 @@ app.post(
       }
 
       console.log(
-        `[Visas Bulk Upload] Worksheet found: ${worksheet.name}, row count: ${worksheet.rowCount}`,
+        `[Visas Bulk Upload] Worksheet found: ${worksheet.name}, row count: ${worksheet.rowCount}`
       );
 
       const rows = [];
@@ -8958,7 +8945,7 @@ app.post(
           const costValue = row["Cost (INR)"] || row["Cost"];
           if (costValue) {
             const parsedCost = parseFloat(
-              costValue.toString().replace(/[^0-9.]/g, ""),
+              costValue.toString().replace(/[^0-9.]/g, "")
             );
             if (!isNaN(parsedCost)) {
               cost = parsedCost;
@@ -9002,7 +8989,7 @@ app.post(
           } else {
             results.success++;
             console.log(
-              `[Visas] Visa created via bulk upload by ${currentUser.name}: ${visaData.visa_name}`,
+              `[Visas] Visa created via bulk upload by ${currentUser.name}: ${visaData.visa_name}`
             );
           }
         } catch (error) {
@@ -9015,12 +9002,12 @@ app.post(
       }
 
       console.log(
-        `[Visas Bulk Upload] Processing complete. Success: ${results.success}, Errors: ${results.errors.length}`,
+        `[Visas Bulk Upload] Processing complete. Success: ${results.success}, Errors: ${results.errors.length}`
       );
       if (results.errors.length > 0) {
         console.log(
           `[Visas Bulk Upload] Error details:`,
-          JSON.stringify(results.errors, null, 2),
+          JSON.stringify(results.errors, null, 2)
         );
       }
 
@@ -9036,7 +9023,7 @@ app.post(
         message: error.message || "Failed to bulk upload visas.",
       });
     }
-  },
+  }
 );
 
 // --- DESTINATIONS & SIGHTSEEING API ENDPOINTS ---
@@ -9167,7 +9154,7 @@ app.post("/api/destinations", requireAuth, async (req, res) => {
     if (error) throw error;
 
     console.log(
-      `[Destinations] Destination created by ${currentUser.name}: ${name}`,
+      `[Destinations] Destination created by ${currentUser.name}: ${name}`
     );
 
     res.status(201).json({
@@ -9245,7 +9232,7 @@ app.put("/api/destinations/:id", requireAuth, async (req, res) => {
     if (error) throw error;
 
     console.log(
-      `[Destinations] Destination ${id} updated by ${currentUser.name}`,
+      `[Destinations] Destination ${id} updated by ${currentUser.name}`
     );
 
     res.json({
@@ -9282,7 +9269,7 @@ app.delete("/api/destinations/:id", requireAuth, async (req, res) => {
     if (deleteError) throw deleteError;
 
     console.log(
-      `[Destinations] Destination ${id} deleted by ${currentUser.name}`,
+      `[Destinations] Destination ${id} deleted by ${currentUser.name}`
     );
 
     res.json({ message: "Destination deleted successfully." });
@@ -9323,7 +9310,7 @@ app.get("/api/sightseeing", requireAuth, async (req, res) => {
     console.log(
       `[Sightseeing API] Returning ${
         sightseeing?.length || 0
-      } attractions for user ${currentUser.name} (Role: ${currentUser.role})`,
+      } attractions for user ${currentUser.name} (Role: ${currentUser.role})`
     );
 
     res.json(sightseeing || []);
@@ -9419,7 +9406,7 @@ app.post("/api/sightseeing", requireAuth, async (req, res) => {
     if (error) throw error;
 
     console.log(
-      `[Sightseeing] Attraction created by ${currentUser.name}: ${attraction_name}`,
+      `[Sightseeing] Attraction created by ${currentUser.name}: ${attraction_name}`
     );
 
     res.status(201).json({
@@ -9531,7 +9518,7 @@ app.put("/api/sightseeing/:id", requireAuth, async (req, res) => {
     if (error) throw error;
 
     console.log(
-      `[Sightseeing] Attraction ${id} updated by ${currentUser.name}`,
+      `[Sightseeing] Attraction ${id} updated by ${currentUser.name}`
     );
 
     res.json({
@@ -9568,7 +9555,7 @@ app.delete("/api/sightseeing/:id", requireAuth, async (req, res) => {
     if (deleteError) throw deleteError;
 
     console.log(
-      `[Sightseeing] Attraction ${id} deleted by ${currentUser.name}`,
+      `[Sightseeing] Attraction ${id} deleted by ${currentUser.name}`
     );
 
     res.json({ message: "Sightseeing item deleted successfully." });
@@ -9613,7 +9600,7 @@ app.post("/api/sightseeing/bulk-create", requireAuth, async (req, res) => {
           errors.push(
             `Skipped: Missing required fields for "${
               attraction.attraction_name || "unknown"
-            }"`,
+            }"`
           );
           continue;
         }
@@ -9640,7 +9627,7 @@ app.post("/api/sightseeing/bulk-create", requireAuth, async (req, res) => {
         if (error) {
           failedCount++;
           errors.push(
-            `Failed to create "${attraction.attraction_name}": ${error.message}`,
+            `Failed to create "${attraction.attraction_name}": ${error.message}`
           );
         } else {
           successCount++;
@@ -9648,13 +9635,13 @@ app.post("/api/sightseeing/bulk-create", requireAuth, async (req, res) => {
       } catch (error) {
         failedCount++;
         errors.push(
-          `Error creating "${attraction.attraction_name}": ${error.message}`,
+          `Error creating "${attraction.attraction_name}": ${error.message}`
         );
       }
     }
 
     console.log(
-      `[Sightseeing] Bulk create by ${currentUser.name}: ${successCount} successful, ${failedCount} failed out of ${attractions.length} items`,
+      `[Sightseeing] Bulk create by ${currentUser.name}: ${successCount} successful, ${failedCount} failed out of ${attractions.length} items`
     );
 
     res.json({
@@ -9720,7 +9707,7 @@ app.post("/api/sightseeing/bulk-delete", requireAuth, async (req, res) => {
     }
 
     console.log(
-      `[Sightseeing] Bulk delete by ${currentUser.name}: ${deletedCount} deleted, ${failedCount} failed out of ${ids.length} items`,
+      `[Sightseeing] Bulk delete by ${currentUser.name}: ${deletedCount} deleted, ${failedCount} failed out of ${ids.length} items`
     );
 
     res.json({
@@ -9811,7 +9798,7 @@ app.post(
       }
 
       console.log(
-        `[Sightseeing] Bulk price update by ${currentUser.name}: ${operation} ${percentage}% for ${ids.length} items`,
+        `[Sightseeing] Bulk price update by ${currentUser.name}: ${operation} ${percentage}% for ${ids.length} items`
       );
 
       res.json({
@@ -9826,7 +9813,7 @@ app.post(
         message: error.message || "Failed to bulk update prices.",
       });
     }
-  },
+  }
 );
 
 // Bulk update currency for sightseeing items
@@ -9872,7 +9859,7 @@ app.post(
       if (!validCurrencies.includes(currency)) {
         return res.status(400).json({
           message: `Invalid currency. Must be one of: ${validCurrencies.join(
-            ", ",
+            ", "
           )}`,
         });
       }
@@ -9889,7 +9876,7 @@ app.post(
       let fxRates = {};
       try {
         const fxResponse = await fetch(
-          "https://api.frankfurter.app/latest?from=INR",
+          "https://api.frankfurter.app/latest?from=INR"
         );
         if (fxResponse.ok) {
           const fxData = await fxResponse.json();
@@ -9976,7 +9963,7 @@ app.post(
       }
 
       console.log(
-        `[Sightseeing] Bulk currency update by ${currentUser.name}: Changed to ${currency} for ${ids.length} items`,
+        `[Sightseeing] Bulk currency update by ${currentUser.name}: Changed to ${currency} for ${ids.length} items`
       );
 
       res.json({
@@ -9989,7 +9976,7 @@ app.post(
         message: error.message || "Failed to bulk update currency.",
       });
     }
-  },
+  }
 );
 
 // Bulk generate attraction details using Google Places API
@@ -10035,7 +10022,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
             if (!name) {
               const errorMsg = "Attraction name is required";
               console.error(
-                `[Sightseeing AI] ${name || "Unknown"}: ${errorMsg}`,
+                `[Sightseeing AI] ${name || "Unknown"}: ${errorMsg}`
               );
               errors.push({
                 name: name || "Unknown",
@@ -10095,7 +10082,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
 
                 extractedOpeningHours = `${String(hour).padStart(
                   2,
-                  "0",
+                  "0"
                 )}:${String(minutes).padStart(2, "0")}`;
                 // Remove the time from the name
                 cleanedName = cleanedName.replace(pattern, "").trim();
@@ -10136,7 +10123,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
             console.log(
               `[Sightseeing AI] Searching for: "${searchQuery}" (Attraction: ${name}, Destination: ${
                 destination_name || "N/A"
-              })`,
+              })`
             );
 
             // Log extracted information
@@ -10224,7 +10211,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
             console.log(
               `[Sightseeing AI] ${name}: Found place "${
                 place.displayName?.text || placeId
-              }" (Place ID: ${placeId})`,
+              }" (Place ID: ${placeId})`
             );
 
             // Step 2: Get Place Details using Places API (New)
@@ -10287,7 +10274,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
                 const firstDay = openingHoursData.weekdayDescriptions[0];
                 // Extract time range (e.g., "Monday: 10:00 AM – 7:00 PM" -> "10:00-19:00")
                 const timeMatch = firstDay.match(
-                  /(\d{1,2}):(\d{2})\s*(AM|PM)\s*–\s*(\d{1,2}):(\d{2})\s*(AM|PM)/,
+                  /(\d{1,2}):(\d{2})\s*(AM|PM)\s*–\s*(\d{1,2}):(\d{2})\s*(AM|PM)/
                 );
                 if (timeMatch) {
                   const [, startH, startM, startAMPM, endH, endM, endAMPM] =
@@ -10302,7 +10289,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
                     (endAMPM === "AM" && endH === "12" ? 12 : 0);
                   openingHours = `${String(startHour).padStart(
                     2,
-                    "0",
+                    "0"
                   )}:${startM}-${String(endHour).padStart(2, "0")}:${endM}`;
                 } else {
                   // Fallback: use the full weekday text (remove day name prefix)
@@ -10518,7 +10505,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
                 tag: predictedTag,
                 average_duration_hours: averageDurationHours,
                 images_count: images.length,
-              },
+              }
             );
           } catch (error) {
             const errorMsg = error.message || String(error);
@@ -10532,7 +10519,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
                   destination_name: attraction.destination_name,
                   destination_id: attraction.destination_id,
                 },
-              },
+              }
             );
             errors.push({
               name: attraction.name || "Unknown",
@@ -10544,7 +10531,7 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
               },
             });
           }
-        }),
+        })
       );
 
       // Small delay between batches to avoid rate limits
@@ -10554,13 +10541,13 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
     }
 
     console.log(
-      `[Sightseeing] AI generation by ${currentUser.name}: Generated ${results.length} attractions, ${errors.length} errors`,
+      `[Sightseeing] AI generation by ${currentUser.name}: Generated ${results.length} attractions, ${errors.length} errors`
     );
 
     // Log first 10 errors in detail for debugging
     if (errors.length > 0) {
       console.log(
-        `[Sightseeing AI] First ${Math.min(10, errors.length)} errors:`,
+        `[Sightseeing AI] First ${Math.min(10, errors.length)} errors:`
       );
       errors.slice(0, 10).forEach((err, idx) => {
         console.log(`  ${idx + 1}. ${err.name}: ${err.error}`);
@@ -10702,11 +10689,11 @@ app.get("/api/transfers/template", requireAuth, async (req, res) => {
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
     res.setHeader(
       "Content-Disposition",
-      'attachment; filename="Transfer_Bulk_Upload_Template.xlsx"',
+      'attachment; filename="Transfer_Bulk_Upload_Template.xlsx"'
     );
 
     await workbook.xlsx.write(res);
@@ -10932,7 +10919,7 @@ app.delete("/api/transfers/:id", requireAuth, async (req, res) => {
     if (error) throw error;
 
     console.log(
-      `[Transfers] Transfer deleted by ${currentUser.name}: ID ${id}`,
+      `[Transfers] Transfer deleted by ${currentUser.name}: ID ${id}`
     );
 
     res.json({ message: "Transfer deleted successfully." });
@@ -10950,7 +10937,7 @@ const transferUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     console.log(
-      `[Transfers Bulk Upload] File filter check: ${file.originalname}, mimetype: ${file.mimetype}`,
+      `[Transfers Bulk Upload] File filter check: ${file.originalname}, mimetype: ${file.mimetype}`
     );
     if (
       file.mimetype ===
@@ -10973,7 +10960,7 @@ const handleTransferMulterError = (err, req, res, next) => {
   if (err) {
     console.error(
       "[Transfers Bulk Upload] Multer/file filter error:",
-      err.message,
+      err.message
     );
     return res.status(400).json({
       message: err.message || "File upload error",
@@ -11005,7 +10992,7 @@ app.post(
       }
 
       console.log(
-        `[Transfers Bulk Upload] File received: ${req.file.originalname}, size: ${req.file.size} bytes, mimetype: ${req.file.mimetype}`,
+        `[Transfers Bulk Upload] File received: ${req.file.originalname}, size: ${req.file.size} bytes, mimetype: ${req.file.mimetype}`
       );
 
       let workbook;
@@ -11016,7 +11003,7 @@ app.post(
       } catch (error) {
         console.error(
           "[Transfers Bulk Upload] Error loading Excel file:",
-          error,
+          error
         );
         return res.status(400).json({
           message: `Failed to parse Excel file: ${error.message}`,
@@ -11029,7 +11016,7 @@ app.post(
       }
 
       console.log(
-        `[Transfers Bulk Upload] Worksheet found: ${worksheet.name}, row count: ${worksheet.rowCount}`,
+        `[Transfers Bulk Upload] Worksheet found: ${worksheet.name}, row count: ${worksheet.rowCount}`
       );
 
       const rows = [];
@@ -11045,7 +11032,7 @@ app.post(
 
       console.log(
         `[Transfers Bulk Upload] Headers found:`,
-        Object.values(headers),
+        Object.values(headers)
       );
 
       // Then process data rows
@@ -11069,7 +11056,7 @@ app.post(
 
       if (rows.length === 0) {
         console.error(
-          "[Transfers Bulk Upload] No data rows found after parsing",
+          "[Transfers Bulk Upload] No data rows found after parsing"
         );
         return res.status(400).json({
           message: "No data rows found in Excel file.",
@@ -11084,7 +11071,7 @@ app.post(
       if (destError) {
         console.error(
           "[Transfers Bulk Upload] Error fetching destinations:",
-          destError,
+          destError
         );
       }
 
@@ -11164,7 +11151,7 @@ app.post(
           const costValue = row["Cost"];
           if (costValue !== undefined && costValue !== null) {
             const parsedCost = parseFloat(
-              costValue.toString().replace(/[^0-9.]/g, ""),
+              costValue.toString().replace(/[^0-9.]/g, "")
             );
             if (!isNaN(parsedCost)) {
               cost = parsedCost;
@@ -11214,7 +11201,7 @@ app.post(
           } else {
             results.success++;
             console.log(
-              `[Transfers] Transfer created via bulk upload by ${currentUser.name}: ${transferData.name}`,
+              `[Transfers] Transfer created via bulk upload by ${currentUser.name}: ${transferData.name}`
             );
           }
         } catch (error) {
@@ -11227,12 +11214,12 @@ app.post(
       }
 
       console.log(
-        `[Transfers Bulk Upload] Processing complete. Success: ${results.success}, Errors: ${results.errors.length}`,
+        `[Transfers Bulk Upload] Processing complete. Success: ${results.success}, Errors: ${results.errors.length}`
       );
       if (results.errors.length > 0) {
         console.log(
           `[Transfers Bulk Upload] Error details:`,
-          JSON.stringify(results.errors, null, 2),
+          JSON.stringify(results.errors, null, 2)
         );
       }
 
@@ -11244,14 +11231,14 @@ app.post(
     } catch (error) {
       console.error(
         "[Transfers Bulk Upload] Error bulk uploading transfers:",
-        error,
+        error
       );
       console.error("[Transfers Bulk Upload] Error stack:", error.stack);
       res.status(500).json({
         message: error.message || "Failed to bulk upload transfers.",
       });
     }
-  },
+  }
 );
 
 // ============================================================================
@@ -11308,7 +11295,7 @@ const areAttractionsSimilar = (name1, name2) => {
     if (
       longer.includes(shorter) ||
       shorter.includes(
-        longer.substring(0, Math.min(shorter.length + 5, longer.length)),
+        longer.substring(0, Math.min(shorter.length + 5, longer.length))
       )
     ) {
       return true;
@@ -11349,7 +11336,7 @@ const levenshteinDistance = (str1, str2) => {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1,
           matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1,
+          matrix[i - 1][j] + 1
         );
       }
     }
@@ -11417,7 +11404,7 @@ const generateTimeSlots = (openingHours, bestTime, durationHours) => {
       const slot1Start = openTime;
       const slot1End = Math.min(
         slot1Start + durationMinutes,
-        openTime + 4 * 60,
+        openTime + 4 * 60
       );
       if (slot1End <= closeTime) {
         slots.push({
@@ -11436,7 +11423,7 @@ const generateTimeSlots = (openingHours, bestTime, durationHours) => {
       const slot2Start = openTime + 60;
       const slot2End = Math.min(
         slot2Start + durationMinutes,
-        openTime + 5 * 60,
+        openTime + 5 * 60
       );
       if (slot2End <= closeTime && slot2Start < 12 * 60) {
         slots.push({
@@ -11552,7 +11539,7 @@ async function generateActivitiesInternal({
   const numDays = parseDurationToDays(duration);
   if (numDays === 0) {
     throw new Error(
-      "Invalid duration format. Expected format: 'X Days' or 'X Days / Y Nights'.",
+      "Invalid duration format. Expected format: 'X Days' or 'X Days / Y Nights'."
     );
   }
 
@@ -11567,7 +11554,7 @@ async function generateActivitiesInternal({
   const matchingDestinations = destinations.filter(
     (d) =>
       d.name.toLowerCase().includes(destination.toLowerCase()) ||
-      destination.toLowerCase().includes(d.name.toLowerCase()),
+      destination.toLowerCase().includes(d.name.toLowerCase())
   );
 
   if (matchingDestinations.length === 0) {
@@ -11590,7 +11577,7 @@ async function generateActivitiesInternal({
 
   // Filter out already added attractions by ID and name similarity
   const addedSightseeingIds = new Set(
-    existingActivities.map((a) => a.sightseeing_id).filter(Boolean),
+    existingActivities.map((a) => a.sightseeing_id).filter(Boolean)
   );
   const addedAttractionNames = existingActivities
     .map((a) => a.name)
@@ -11602,13 +11589,13 @@ async function generateActivitiesInternal({
 
     // Filter by name similarity
     return !addedAttractionNames.some((name) =>
-      areAttractionsSimilar(name, s.attraction_name),
+      areAttractionsSimilar(name, s.attraction_name)
     );
   });
 
   if (availableAttractions.length === 0) {
     throw new Error(
-      "All attractions have already been added to this itinerary.",
+      "All attractions have already been added to this itinerary."
     );
   }
 
@@ -11620,7 +11607,7 @@ async function generateActivitiesInternal({
   const isAttractionUsed = (attraction) => {
     if (usedAttractionIds.has(attraction.id)) return true;
     return Array.from(usedAttractionNames).some((name) =>
-      areAttractionsSimilar(name, attraction.attraction_name),
+      areAttractionsSimilar(name, attraction.attraction_name)
     );
   };
 
@@ -11644,26 +11631,26 @@ async function generateActivitiesInternal({
       attraction1.latitude,
       attraction1.longitude,
       attraction2.latitude,
-      attraction2.longitude,
+      attraction2.longitude
     );
     return distance <= maxDistance;
   };
 
   // Classify attractions
   const fullDayAttractions = availableAttractions.filter(
-    (s) => s.tag === "Full-day" && !isAttractionUsed(s),
+    (s) => s.tag === "Full-day" && !isAttractionUsed(s)
   );
   const nightOnlyAttractions = availableAttractions.filter(
-    (s) => s.tag === "Night-only" && !isAttractionUsed(s),
+    (s) => s.tag === "Night-only" && !isAttractionUsed(s)
   );
   const halfDayAttractions = availableAttractions.filter(
-    (s) => s.tag === "Half-day" && !isAttractionUsed(s),
+    (s) => s.tag === "Half-day" && !isAttractionUsed(s)
   );
   const quickStopAttractions = availableAttractions.filter(
-    (s) => s.tag === "Quick stop" && !isAttractionUsed(s),
+    (s) => s.tag === "Quick stop" && !isAttractionUsed(s)
   );
   const unclassifiedAttractions = availableAttractions.filter(
-    (s) => !s.tag && !isAttractionUsed(s),
+    (s) => !s.tag && !isAttractionUsed(s)
   );
 
   // Distribute attractions across days
@@ -11677,28 +11664,28 @@ async function generateActivitiesInternal({
     ...nightOnlyAttractions.filter(
       (s) =>
         (s.average_duration_hours || 0) >= 2 &&
-        (s.average_duration_hours || 0) <= 3,
+        (s.average_duration_hours || 0) <= 3
     ),
     ...halfDayAttractions.filter(
       (s) =>
         (s.average_duration_hours || 0) >= 2 &&
-        (s.average_duration_hours || 0) <= 3,
+        (s.average_duration_hours || 0) <= 3
     ),
     ...quickStopAttractions.filter(
       (s) =>
         (s.average_duration_hours || 0) >= 2 &&
-        (s.average_duration_hours || 0) <= 3,
+        (s.average_duration_hours || 0) <= 3
     ),
     ...unclassifiedAttractions.filter(
       (s) =>
         (s.average_duration_hours || 0) >= 2 &&
-        (s.average_duration_hours || 0) <= 3,
+        (s.average_duration_hours || 0) <= 3
     ),
   ];
 
   // Prefer night-only for arrival day
   const arrivalNightOnly = arrivalDayCandidates.filter(
-    (s) => s.tag === "Night-only",
+    (s) => s.tag === "Night-only"
   );
   if (arrivalNightOnly.length > 0 && !isAttractionUsed(arrivalNightOnly[0])) {
     dayAssignments[1].push(arrivalNightOnly[0]);
@@ -11717,17 +11704,17 @@ async function generateActivitiesInternal({
     ...halfDayAttractions.filter(
       (s) =>
         (s.average_duration_hours || 0) >= 2 &&
-        (s.average_duration_hours || 0) <= 3,
+        (s.average_duration_hours || 0) <= 3
     ),
     ...quickStopAttractions.filter(
       (s) =>
         (s.average_duration_hours || 0) >= 2 &&
-        (s.average_duration_hours || 0) <= 3,
+        (s.average_duration_hours || 0) <= 3
     ),
     ...unclassifiedAttractions.filter(
       (s) =>
         (s.average_duration_hours || 0) >= 2 &&
-        (s.average_duration_hours || 0) <= 3,
+        (s.average_duration_hours || 0) <= 3
     ),
   ];
 
@@ -11747,13 +11734,13 @@ async function generateActivitiesInternal({
     let dayActivities = dayAssignments[day];
     let dayHours = dayActivities.reduce(
       (sum, a) => sum + (a.average_duration_hours || 0),
-      0,
+      0
     );
 
     // Strategy 1: Try to add 1 full-day attraction
     if (dayHours === 0) {
       const fullDayCandidate = fullDayAttractions.find(
-        (s) => !isAttractionUsed(s),
+        (s) => !isAttractionUsed(s)
       );
       if (
         fullDayCandidate &&
@@ -11772,12 +11759,12 @@ async function generateActivitiesInternal({
         ...halfDayAttractions.filter(
           (s) =>
             (s.average_duration_hours || 0) >= 2 &&
-            (s.average_duration_hours || 0) <= 3,
+            (s.average_duration_hours || 0) <= 3
         ),
         ...unclassifiedAttractions.filter(
           (s) =>
             (s.average_duration_hours || 0) >= 2 &&
-            (s.average_duration_hours || 0) <= 3,
+            (s.average_duration_hours || 0) <= 3
         ),
       ].filter((s) => !isAttractionUsed(s));
 
@@ -11810,12 +11797,12 @@ async function generateActivitiesInternal({
         ...halfDayAttractions.filter(
           (s) =>
             (s.average_duration_hours || 0) >= 3 &&
-            (s.average_duration_hours || 0) <= 4,
+            (s.average_duration_hours || 0) <= 4
         ),
         ...unclassifiedAttractions.filter(
           (s) =>
             (s.average_duration_hours || 0) >= 3 &&
-            (s.average_duration_hours || 0) <= 4,
+            (s.average_duration_hours || 0) <= 4
         ),
       ].filter((s) => !isAttractionUsed(s));
 
@@ -11848,7 +11835,7 @@ async function generateActivitiesInternal({
       const nightCandidate = nightOnlyAttractions.find(
         (s) =>
           !isAttractionUsed(s) &&
-          (s.average_duration_hours || 0) <= 8 - dayHours,
+          (s.average_duration_hours || 0) <= 8 - dayHours
       );
       if (nightCandidate) {
         dayAssignments[day].push(nightCandidate);
@@ -11903,7 +11890,7 @@ async function generateActivitiesInternal({
         const timeSlots = generateTimeSlots(
           attraction.opening_hours,
           durationMinutes,
-          attraction.best_time,
+          attraction.best_time
         );
         if (timeSlots.length > 0) {
           const slot = timeSlots[0]; // Use first suggested slot
@@ -11991,7 +11978,7 @@ app.post(
         });
 
         console.log(
-          `[Itinerary AI] Generated ${result.activities.length} activities for ${result.summary.days} days by ${currentUser.name}`,
+          `[Itinerary AI] Generated ${result.activities.length} activities for ${result.summary.days} days by ${currentUser.name}`
         );
 
         return res.json(result);
@@ -12003,7 +11990,7 @@ app.post(
               ? 404
               : error.message?.includes("already been added")
               ? 400
-              : 500,
+              : 500
           )
           .json({
             message: error.message || "Failed to generate activities.",
@@ -12015,7 +12002,7 @@ app.post(
         message: error.message || "Failed to generate activities.",
       });
     }
-  },
+  }
 );
 
 // OLD ENDPOINT HANDLER CODE REMOVED - Now using generateActivitiesInternal helper function
@@ -12534,7 +12521,7 @@ app.post(
       // Calculate current day hours
       const dayHours = currentDayActivities.reduce(
         (sum, a) => sum + (a.average_duration_hours || 0),
-        0,
+        0
       );
       const remainingHours = Math.max(0, 8 - dayHours);
 
@@ -12554,7 +12541,7 @@ app.post(
       const matchingDestinations = destinations.filter(
         (d) =>
           d.name.toLowerCase().includes(destination.toLowerCase()) ||
-          destination.toLowerCase().includes(d.name.toLowerCase()),
+          destination.toLowerCase().includes(d.name.toLowerCase())
       );
 
       if (matchingDestinations.length === 0) {
@@ -12575,7 +12562,7 @@ app.post(
 
       // Filter out already added attractions by ID and name similarity
       const addedSightseeingIds = new Set(
-        existingActivities.map((a) => a.sightseeing_id).filter(Boolean),
+        existingActivities.map((a) => a.sightseeing_id).filter(Boolean)
       );
       const addedAttractionNames = existingActivities
         .map((a) => a.name)
@@ -12595,7 +12582,7 @@ app.post(
         ];
         if (
           allNames.some((name) =>
-            areAttractionsSimilar(name, s.attraction_name),
+            areAttractionsSimilar(name, s.attraction_name)
           )
         ) {
           return false;
@@ -12621,17 +12608,17 @@ app.post(
 
       // Check if day already has a long attraction (≥5 hours)
       const hasLongAttraction = currentDayActivities.some(
-        (a) => (a.average_duration_hours || 0) >= 5,
+        (a) => (a.average_duration_hours || 0) >= 5
       );
       if (hasLongAttraction) {
         availableAttractions = availableAttractions.filter(
-          (s) => (s.average_duration_hours || 0) < 5,
+          (s) => (s.average_duration_hours || 0) < 5
         );
       }
 
       // Filter by remaining hours
       availableAttractions = availableAttractions.filter(
-        (s) => (s.average_duration_hours || 0) <= remainingHours,
+        (s) => (s.average_duration_hours || 0) <= remainingHours
       );
 
       if (availableAttractions.length === 0) {
@@ -12646,7 +12633,7 @@ app.post(
 
         // Geo-clustering: prefer attractions close to existing ones
         const dayActivitiesWithCoords = currentDayActivities.filter(
-          (a) => a.latitude && a.longitude,
+          (a) => a.latitude && a.longitude
         );
         if (
           dayActivitiesWithCoords.length > 0 &&
@@ -12659,9 +12646,9 @@ app.post(
                 a.latitude,
                 a.longitude,
                 attraction.latitude,
-                attraction.longitude,
-              ),
-            ),
+                attraction.longitude
+              )
+            )
           );
           if (minDistance <= 12) {
             score += 10;
@@ -12694,7 +12681,7 @@ app.post(
 
       // Sort by score and select attractions to fill the day
       const sortedAttractions = scoredAttractions.sort(
-        (a, b) => b.score - a.score,
+        (a, b) => b.score - a.score
       );
 
       let currentDayHours = dayHours;
@@ -12717,7 +12704,7 @@ app.post(
         const timeSlots = generateTimeSlots(
           attraction.opening_hours,
           attraction.best_time,
-          attraction.average_duration_hours,
+          attraction.average_duration_hours
         );
         const selectedSlot = timeSlots[0] || { start: "09:00", end: "17:00" };
 
@@ -12776,7 +12763,7 @@ app.post(
       });
 
       console.log(
-        `[Itinerary AI] Generated ${generatedActivities.length} suggestions for Day ${dayNumber} by ${currentUser.name}`,
+        `[Itinerary AI] Generated ${generatedActivities.length} suggestions for Day ${dayNumber} by ${currentUser.name}`
       );
 
       res.json({
@@ -12787,7 +12774,7 @@ app.post(
           activities_added: generatedActivities.length,
           hours_added: generatedActivities.reduce(
             (sum, a) => sum + (a.average_duration_hours || 0),
-            0,
+            0
           ),
         },
       });
@@ -12797,7 +12784,7 @@ app.post(
         message: error.message || "Failed to generate day suggestions.",
       });
     }
-  },
+  }
 );
 
 // --- PDF CLEANUP API ENDPOINT ---
