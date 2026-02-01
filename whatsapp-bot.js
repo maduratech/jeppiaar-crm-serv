@@ -1708,7 +1708,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (customer && displayName) {
       await sendText(
         from,
-        `Greetings, ${customer.first_name}! 👋\n\nTo assist you better, please select the service you're interested in:`
+        `Greetings, ${customer.first_name}! 👋\n\nWelcome to Jeppiaar Academy.\n\nPlease select the service you're interested in:`
       );
       await sendOptionsList(from, "Select Service:", SERVICES_LIST, "Choose");
 

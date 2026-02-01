@@ -1033,13 +1033,7 @@ function validateMtsSummaryRequiredFields(lead) {
 }
 
 function generateLeadSummary(lead, customer, staff) {
-  const today = new Date();
-  const bookingId = `MTS-${lead.id}${String(today.getDate()).padStart(
-    2,
-    "0"
-  )}${String(today.getMonth() + 1).padStart(2, "0")}${String(
-    today.getFullYear()
-  ).slice(-2)}`;
+  const bookingId = `JA-${lead.id}`;
 
   // Calculate passengers
   const totalAdults =
@@ -1323,14 +1317,7 @@ async function sendStaffAssignmentNotification(
   const customerPhoneRaw = customer.phone || "";
   const customerPhoneSanitized = customerPhoneRaw.replace(/\s/g, ""); // Sanitize phone number for the URL
 
-  // Generate MTS- format lead number (same format as in sendWelcomeWhatsapp)
-  const today = new Date();
-  const leadNumber = `MTS-${lead.id}${String(today.getDate()).padStart(
-    2,
-    "0"
-  )}${String(today.getMonth() + 1).padStart(2, "0")}${String(
-    today.getFullYear()
-  ).slice(-2)}`;
+  const leadNumber = `JA-${lead.id}`;
 
   // Services that don't require destination/travel date
   const nonTravelServices = ["Forex", "Passport", "Transport"];
@@ -4330,7 +4317,7 @@ async function createRazorpayLinkForItinerary(lead, customer) {
       dueDate.setDate(today.getDate() + 7);
 
       const invoiceNumber = `INV-${Date.now().toString().slice(-6)}`;
-      const bookingId = `MTS-${lead.id}`;
+      const bookingId = `JA-${lead.id}`;
 
       const newInvoice = {
         invoice_number: invoiceNumber,
@@ -4398,7 +4385,7 @@ async function createRazorpayLinkForItinerary(lead, customer) {
         currency: "INR",
         description: `Booking Payment - ${customer.first_name} ${
           customer.last_name
-        } - ${lead.destination || "Tour Package"} - MTS-${lead.id}`,
+        } - ${lead.destination || "Tour Package"} - JA-${lead.id}`,
         customer: {
           name: `${customer.first_name} ${customer.last_name}`,
           email: customer.email || "",
@@ -5211,13 +5198,12 @@ async function sendInvoiceWhatsappMessage(
     0
   ).toLocaleString("en-IN")}`;
   const linkUrl = invoice.razorpay_payment_link_url;
-  // Prefer a full MTS Booking ID if we have lead context
   let bookingId =
     invoice.booking_id ||
     (invoice.lead && invoice.lead.id
-      ? `MTS-${invoice.lead.id}`
+      ? `JA-${invoice.lead.id}`
       : invoice.lead_id
-      ? `MTS-${invoice.lead_id}`
+      ? `JA-${invoice.lead_id}`
       : invoice.invoice_number || "Booking");
   let linkSlug = null;
   if (linkUrl) {
