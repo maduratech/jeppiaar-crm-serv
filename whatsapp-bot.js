@@ -994,11 +994,13 @@ function getServiceQuestions(service, serviceData = {}) {
 }
 
 function formatLeadSummary(userData, customerName = null) {
-  const service = userData.service_required;
+  const service = userData.service_required ?? "Other";
+  const serviceLabel =
+    typeof service === "string"
+      ? service.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
+      : "Other";
   let summary = `✅ *Enquiry Summary*\n\n`;
-  summary += `📋 *Service:* ${service
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (l) => l.toUpperCase())}\n\n`;
+  summary += `📋 *Service:* ${serviceLabel}\n\n`;
 
   // Service-specific details
   const serviceData = userData.service_data || {};
@@ -1360,6 +1362,18 @@ function formatLeadDataForAPI(userData) {
     services: [...new Set([enquiry])],
     summary: formatLeadSummary(userData, userData.name),
   };
+
+  const sd = userData.service_data || {};
+  if (enquiry === "Events and Programmes" && sd.events_option) {
+    leadData.events_option = sd.events_option;
+  }
+  if (enquiry === "Consultations") {
+    if (sd.consultation_for) leadData.consultation_for = sd.consultation_for;
+    if (sd.consultation_mode) leadData.consultation_mode = sd.consultation_mode;
+  }
+  if (enquiry === "Advanced Diploma Programmes" && sd.programme) {
+    leadData.programme_applied_for = sd.programme;
+  }
 
   if (userData.conversation_summary) {
     leadData.conversation_summary_note = userData.conversation_summary;
@@ -1789,6 +1803,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       );
       const updatedUser = {
         ...user,
+        service_required: serviceEntry.title,
         service_data: { ...(user.service_data || {}), short_course: "voxdemy" },
       };
       const leadResult = await submitLead(updatedUser);
@@ -1910,11 +1925,11 @@ async function handleStructuredTextMessage(from, user, messageText) {
   ) {
     const optionId = eventsNumMap[messageText.trim()];
     const messages = {
-      chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n${FORM_LINKS.eventChiefGuest}\n\nThe form will collect: Organisation Website, Date of Programme, Time, Location, Number of Attendees, Indoor/Outdoor Event, Budget for Chief Guest, Is it a Recorded Programme?, Other Guests Attending.\n\nOur team will review and get back to you.`,
-      workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Handling Bullying, Learning Disabilities, Substance Use Prevention, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n(Topics available as checkbox options in the form.)\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-      workshop_students: `Thank you for your interest in conducting a students workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Dangers of Social Media, Anti-Bullying, Leadership Development, Handling Exam Anxiety, Be Assertive, Career Guidance, Anti-Addiction, Screen Time Reduction, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-      workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Understanding Your Teen Child, Child Nutrition, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-      workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nPlease select the focus areas you would like to include (you can choose multiple): Workplace Mental Health, Stress Management, Emotional Intelligence, Leadership & Communication, POSH Awareness, Burnout Prevention, Team Building & Conflict Management, Custom Workshop (Mention Requirement).\n\nPlease fill this corporate workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will connect with you to discuss customization, budget, and logistics.`,
+      chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n${FORM_LINKS.eventChiefGuest}\n\nOur team will review and get back to you.`,
+      workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+      workshop_students: `Thank you for your interest in conducting a students workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+      workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+      workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nPlease fill this corporate workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will connect with you to discuss customization, budget, and logistics.`,
     };
     const msg = messages[optionId];
     if (msg) {
@@ -3348,6 +3363,7 @@ app.post("/webhook", async (req, res) => {
           );
           const updatedUser = {
             ...user,
+            service_required: serviceEntry.title,
             service_data: {
               ...(user.service_data || {}),
               short_course: "voxdemy",
@@ -3462,11 +3478,11 @@ app.post("/webhook", async (req, res) => {
       if (user.stage === "selecting_events_option") {
         const optionId = normalizedReplyId || reply_id;
         const messages = {
-          chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n${FORM_LINKS.eventChiefGuest}\n\nThe form will collect: Organisation Website, Date of Programme, Time, Location, Number of Attendees, Indoor/Outdoor Event, Budget for Chief Guest, Is it a Recorded Programme?, Other Guests Attending.\n\nOur team will review and get back to you.`,
-          workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Handling Bullying, Learning Disabilities, Substance Use Prevention, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n(Topics available as checkbox options in the form.)\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-          workshop_students: `Thank you for your interest in conducting a students workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Dangers of Social Media, Anti-Bullying, Leadership Development, Handling Exam Anxiety, Be Assertive, Career Guidance, Anti-Addiction, Screen Time Reduction, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-          workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nPlease select the topics you would like to include (you can choose multiple): Child Psychology Basics, Laws Protecting Children, Handling Children & Adolescents, Handling Exam Anxiety, Understanding Your Teen Child, Child Nutrition, Custom Workshop (Mention Requirement).\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-          workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nPlease select the focus areas you would like to include (you can choose multiple): Workplace Mental Health, Stress Management, Emotional Intelligence, Leadership & Communication, POSH Awareness, Burnout Prevention, Team Building & Conflict Management, Custom Workshop (Mention Requirement).\n\nPlease fill this corporate workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will connect with you to discuss customization, budget, and logistics.`,
+          chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n${FORM_LINKS.eventChiefGuest}\n\nOur team will review and get back to you.`,
+          workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+          workshop_students: `Thank you for your interest in conducting a students workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+          workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
+          workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nPlease fill this corporate workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will connect with you to discuss customization, budget, and logistics.`,
         };
         const msg = messages[optionId];
         if (msg) {

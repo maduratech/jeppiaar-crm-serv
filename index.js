@@ -1812,7 +1812,8 @@ app.post("/api/leads/bulk-delete", requireAuth, async (req, res) => {
       });
     }
 
-    // Cascade delete order: lead_costings, payments, invoices, lead_assignees, lead_suppliers, leads
+    // Cascade delete order: whatsapp_messages, lead_costings, payments, invoices, lead_assignees, lead_suppliers, leads
+    await supabase.from("whatsapp_messages").delete().in("lead_id", ids);
     await supabase.from("lead_costings").delete().in("lead_id", ids);
     await supabase.from("payments").delete().in("lead_id", ids);
     await supabase.from("invoices").delete().in("lead_id", ids);
@@ -5321,6 +5322,10 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       services,
       summary,
       conversation_summary_note,
+      events_option,
+      consultation_for,
+      consultation_mode,
+      programme_applied_for: whatsapp_programme,
     } = formData;
 
     // Validate required fields (only phone is mandatory)
@@ -5605,7 +5610,15 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     };
     allNotes.push(summaryNote);
 
-    // 2. Create Lead – academy schema only (no travel/tourism columns)
+    // 2. Build academy_data from WhatsApp flow fields (for Lead Detail panel)
+    const academy_data = {};
+    if (enquiry) academy_data.enquiry = enquiry;
+    if (events_option) academy_data.events_option = events_option;
+    if (consultation_for) academy_data.consultation_for = consultation_for;
+    if (consultation_mode) academy_data.consultation_mode = consultation_mode;
+    if (whatsapp_programme) academy_data.programme_applied_for = whatsapp_programme;
+
+    // 3. Create Lead – academy schema only (no travel/tourism columns)
     const newLead = {
       customer_id: customer.id,
       status: "Enquiry",
@@ -5627,6 +5640,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       source: "whatsapp",
       created_at: new Date().toISOString(),
       last_updated: new Date().toISOString(),
+      ...(Object.keys(academy_data).length > 0 ? { academy_data } : {}),
     };
 
     const { data: createdLead, error: leadError } = await supabase
