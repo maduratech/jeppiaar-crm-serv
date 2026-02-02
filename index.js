@@ -1828,11 +1828,9 @@ app.post("/api/customers/bulk-delete", requireAuth, async (req, res) => {
   try {
     const { customerIds } = req.body || {};
     if (!Array.isArray(customerIds) || customerIds.length === 0) {
-      return res
-        .status(400)
-        .json({
-          message: "customerIds array is required and must not be empty.",
-        });
+      return res.status(400).json({
+        message: "customerIds array is required and must not be empty.",
+      });
     }
     const ids = customerIds.filter((id) => id != null).map((id) => String(id));
     if (ids.length === 0) {
@@ -4584,17 +4582,30 @@ app.post("/api/lead/website", async (req, res) => {
 
     // Student/Customer optional fields
     const first_name =
-      formData.first_name || formData["First Name"] || (name ? name.split(" ")[0] : null);
+      formData.first_name ||
+      formData["First Name"] ||
+      (name ? name.split(" ")[0] : null);
     const last_name =
       formData.last_name ||
       formData["Last Name"] ||
-      (name && name.split(" ").length > 1 ? name.split(" ").slice(1).join(" ") : null);
+      (name && name.split(" ").length > 1
+        ? name.split(" ").slice(1).join(" ")
+        : null);
     const gender = formData.gender || formData.Gender || null;
-    const date_of_birth = formData.date_of_birth || formData["Date of Birth"] || formData.dob || null;
+    const date_of_birth =
+      formData.date_of_birth ||
+      formData["Date of Birth"] ||
+      formData.dob ||
+      null;
     const aadhaar_number =
-      formData.aadhaar_number || formData["Aadhaar Number"] || formData.aadhaar || null;
+      formData.aadhaar_number ||
+      formData["Aadhaar Number"] ||
+      formData.aadhaar ||
+      null;
     const full_name_as_per_aadhaar =
-      formData.full_name_as_per_aadhaar || formData["Full Name as per Aadhaar"] || null;
+      formData.full_name_as_per_aadhaar ||
+      formData["Full Name as per Aadhaar"] ||
+      null;
     const alternate_mobile =
       formData.alternate_mobile ||
       formData["Alternate Mobile Number"] ||
@@ -4609,14 +4620,23 @@ app.post("/api/lead/website", async (req, res) => {
     const city = formData.city || formData.City || null;
     const state = formData.state || formData.State || null;
     const pincode = formData.pincode || formData.Pincode || null;
-    const avatar_url = formData.avatar_url || formData.avatar || formData.photo_url || null;
+    const avatar_url =
+      formData.avatar_url || formData.avatar || formData.photo_url || null;
 
     // Alternate contact (flat or nested)
     let alternate_contact = formData.alternate_contact || null;
-    if (!alternate_contact && (formData.alternate_contact_name || formData.contact_name || formData["Contact Name"])) {
+    if (
+      !alternate_contact &&
+      (formData.alternate_contact_name ||
+        formData.contact_name ||
+        formData["Contact Name"])
+    ) {
       alternate_contact = {
         contact_name:
-          formData.alternate_contact_name || formData["Contact Name"] || formData.contact_name || "",
+          formData.alternate_contact_name ||
+          formData["Contact Name"] ||
+          formData.contact_name ||
+          "",
         relationship_with_student:
           formData.relationship_with_student ||
           formData["Relationship with Student"] ||
@@ -4643,7 +4663,10 @@ app.post("/api/lead/website", async (req, res) => {
     }
 
     // Scholarship eligibility: array or comma-separated string
-    let scholarship_eligibility = formData.scholarship_eligibility || formData["Scholarship Eligibility"] || null;
+    let scholarship_eligibility =
+      formData.scholarship_eligibility ||
+      formData["Scholarship Eligibility"] ||
+      null;
     if (scholarship_eligibility != null) {
       if (Array.isArray(scholarship_eligibility)) {
         scholarship_eligibility = scholarship_eligibility.filter(Boolean);
@@ -4657,10 +4680,8 @@ app.post("/api/lead/website", async (req, res) => {
     }
 
     // Lead optional fields
-    const lead_status =
-      formData.status || formData.lead_status || "Enquiry";
-    const source =
-      formData.source || formData.lead_source || null;
+    const lead_status = formData.status || formData.lead_status || "Enquiry";
+    const source = formData.source || formData.lead_source || null;
     const staff_id = formData.staff_id || formData.assigned_staff_id || null;
     const lead_type = formData.lead_type || formData["Lead Type"] || "Cold";
     const priority = formData.priority || formData.Priority || "Low";
@@ -4674,13 +4695,16 @@ app.post("/api/lead/website", async (req, res) => {
     // Academy: required = (name or first_name+last_name), phone, enquiry
     const hasName = (name && name.trim()) || (first_name && last_name);
     if (!hasName || !phone || !enquiry) {
-      console.error("Validation failed: Missing name (or first_name+last_name), phone, or enquiry.", {
-        name,
-        first_name,
-        last_name,
-        phone,
-        enquiry,
-      });
+      console.error(
+        "Validation failed: Missing name (or first_name+last_name), phone, or enquiry.",
+        {
+          name,
+          first_name,
+          last_name,
+          phone,
+          enquiry,
+        }
+      );
       return res.status(400).json({
         message:
           "Missing required fields: name (or first_name and last_name), phone, and enquiry (Type of Enquiry) are required. Use field IDs: name, phone, enquiry.",
@@ -4785,15 +4809,20 @@ app.post("/api/lead/website", async (req, res) => {
       if (gender != null) updateFields.gender = gender;
       if (date_of_birth != null) updateFields.date_of_birth = date_of_birth;
       if (aadhaar_number != null) updateFields.aadhaar_number = aadhaar_number;
-      if (full_name_as_per_aadhaar != null) updateFields.full_name_as_per_aadhaar = full_name_as_per_aadhaar;
-      if (alternate_mobile != null) updateFields.alternate_mobile = alternate_mobile;
-      if (address_for_communication != null) updateFields.address_for_communication = address_for_communication;
+      if (full_name_as_per_aadhaar != null)
+        updateFields.full_name_as_per_aadhaar = full_name_as_per_aadhaar;
+      if (alternate_mobile != null)
+        updateFields.alternate_mobile = alternate_mobile;
+      if (address_for_communication != null)
+        updateFields.address_for_communication = address_for_communication;
       if (city != null) updateFields.city = city;
       if (state != null) updateFields.state = state;
       if (pincode != null) updateFields.pincode = pincode;
       if (avatar_url != null) updateFields.avatar_url = avatar_url;
-      if (alternate_contact != null) updateFields.alternate_contact = alternate_contact;
-      if (scholarship_eligibility != null) updateFields.scholarship_eligibility = scholarship_eligibility;
+      if (alternate_contact != null)
+        updateFields.alternate_contact = alternate_contact;
+      if (scholarship_eligibility != null)
+        updateFields.scholarship_eligibility = scholarship_eligibility;
       if (first_name != null) updateFields.first_name = first_name;
       if (last_name != null) updateFields.last_name = last_name;
 
@@ -4811,7 +4840,11 @@ app.post("/api/lead/website", async (req, res) => {
       }
     } else {
       const fName = first_name || (name ? name.split(" ")[0] : "Website");
-      const lName = last_name || (name && name.split(" ").length > 1 ? name.split(" ").slice(1).join(" ") : "Customer");
+      const lName =
+        last_name ||
+        (name && name.split(" ").length > 1
+          ? name.split(" ").slice(1).join(" ")
+          : "Customer");
 
       const customerInsert = {
         salutation: "Mr.",
@@ -4823,7 +4856,9 @@ app.post("/api/lead/website", async (req, res) => {
         username: `@${(fName + lName)
           .toLowerCase()
           .replace(/\s/g, "")}${Date.now().toString().slice(-4)}`,
-        avatar_url: avatar_url || `https://avatar.iran.liara.run/public/boy?username=${Date.now()}`,
+        avatar_url:
+          avatar_url ||
+          `https://avatar.iran.liara.run/public/boy?username=${Date.now()}`,
         date_added: new Date().toISOString(),
         added_by_branch_id: targetBranchId,
         gender: gender || null,
@@ -4853,9 +4888,12 @@ app.post("/api/lead/website", async (req, res) => {
     let services = formData.services || [];
     if (!Array.isArray(services) || services.length === 0) {
       services = enquiry
-        ? (enquiry.includes(",")
-            ? enquiry.split(",").map((s) => s.trim()).filter(Boolean)
-            : [enquiry])
+        ? enquiry.includes(",")
+          ? enquiry
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [enquiry]
         : [];
     }
 
@@ -4889,9 +4927,7 @@ app.post("/api/lead/website", async (req, res) => {
     }
 
     // 2. Create Lead (academy-only: enquiry, services, summary, status, source, lead_type, priority; optional notes)
-    const leadSourceValue =
-      source ||
-      (staff_id ? "Staff Link" : "website");
+    const leadSourceValue = source || (staff_id ? "Staff Link" : "website");
     const activityDescription = staffForActivity
       ? `Lead created via website form (Staff Form) by ${staffForActivity.name} (Staff ID: ${staffForActivity.id}).`
       : "Lead created via website form.";
@@ -4928,7 +4964,6 @@ app.post("/api/lead/website", async (req, res) => {
 
     const newLead = {
       customer_id: customer.id,
-      enquiry: enquiry || null,
       status: lead_status || "Enquiry",
       priority: priority || "Low",
       lead_type: lead_type || "Cold",
@@ -5037,12 +5072,10 @@ app.post("/api/lead/website", async (req, res) => {
       payload: { leadId: createdLead.id },
     });
 
-    res
-      .status(201)
-      .json({
-        message: "Lead created successfully.",
-        lead: sanitizeLeadResponse(createdLead),
-      });
+    res.status(201).json({
+      message: "Lead created successfully.",
+      lead: sanitizeLeadResponse(createdLead),
+    });
   } catch (error) {
     console.error("Error creating lead from website:", error);
     res
@@ -5256,10 +5289,25 @@ async function sendInvoiceWhatsappMessage(
 
 // Build lead response without travel/tourism fields (academy-only). Those keys are never included.
 const LEAD_RESPONSE_KEYS = [
-  "id", "customer_id", "status", "priority", "lead_type", "enquiry", "services",
-  "summary", "notes", "activity", "branch_ids", "source", "requirements",
-  "last_updated", "created_at", "updated_at", "last_staff_response_at",
-  "current_staff_name", "academy_data",
+  "id",
+  "customer_id",
+  "status",
+  "priority",
+  "lead_type",
+  "enquiry",
+  "services",
+  "summary",
+  "notes",
+  "activity",
+  "branch_ids",
+  "source",
+  "requirements",
+  "last_updated",
+  "created_at",
+  "updated_at",
+  "last_staff_response_at",
+  "current_staff_name",
+  "academy_data",
 ];
 function sanitizeLeadResponse(lead) {
   if (!lead || typeof lead !== "object") return lead;
@@ -5589,7 +5637,8 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     if (events_option) academy_data.events_option = events_option;
     if (consultation_for) academy_data.consultation_for = consultation_for;
     if (consultation_mode) academy_data.consultation_mode = consultation_mode;
-    if (whatsapp_programme) academy_data.programme_applied_for = whatsapp_programme;
+    if (whatsapp_programme)
+      academy_data.programme_applied_for = whatsapp_programme;
 
     // 3. Create Lead – academy schema only (enquiry + academy_data; no travel/tourism columns)
     const newLead = {
@@ -5597,7 +5646,6 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       status: "Enquiry",
       priority: "Low",
       lead_type: "Warm",
-      enquiry: enquiry || null,
       services: services || (enquiry ? [enquiry] : []),
       summary: summaryText,
       notes: allNotes,
