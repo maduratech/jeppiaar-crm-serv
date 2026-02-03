@@ -551,12 +551,12 @@ const SERVICES_LIST = [
 const DIPLOMA_PROGRAMMES = [
   {
     id: "counselling_child_psychology",
-    title: "1. Child & Child Psych",
+    title: "1. Child & Child Psychology",
     description: "Advanced Diploma in Counselling & Child Psychology",
   },
   {
     id: "counselling_organizational",
-    title: "2. Organizational Psych",
+    title: "2. Organizational Psychology",
     description: "Advanced Diploma in Counselling & Organizational Psychology",
   },
   {
