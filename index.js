@@ -39,9 +39,10 @@ const envOrigins = process.env.CORS_ORIGINS;
 const allowedOrigins = envOrigins
   ? envOrigins
       .split(",")
-      .map((o) => o.trim())
+      .map((o) => o.trim().replace(/\/$/, ""))
       .filter(Boolean)
   : [
+      "https://jeppiaar.vercel.app",
       "https://crm.jeppiaaracademy.com",
       "https://jeppiaaracademy.com",
       "https://www.jeppiaaracademy.com",
@@ -52,16 +53,16 @@ const allowedOrigins = envOrigins
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    const normalizedOrigin =
+      origin && origin.replace ? origin.replace(/\/$/, "") : origin;
+    if (!origin || allowedOrigins.indexOf(normalizedOrigin) !== -1) {
       callback(null, true);
     } else if (envOrigins) {
       callback(new Error("Not allowed by CORS"));
-    } else if (origin && origin.includes("jeppiaaracademy.com")) {
-      callback(null, true);
     } else if (
-      origin &&
-      (origin.includes("crm.jeppiaaracademy.com") ||
-        origin.includes("jeppiaaracademy.com"))
+      normalizedOrigin &&
+      (normalizedOrigin.includes("jeppiaaracademy.com") ||
+        normalizedOrigin.includes("jeppiaar.vercel.app"))
     ) {
       callback(null, true);
     } else {
