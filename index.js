@@ -4683,6 +4683,11 @@ app.post("/api/lead/website", async (req, res) => {
     // Lead optional fields
     const lead_status = formData.status || formData.lead_status || "Enquiry";
     const source = formData.source || formData.lead_source || null;
+    const where_did_you_hear =
+      formData.where_did_you_hear ||
+      formData["Where did you hear about this site?"] ||
+      formData.hear_about_site ||
+      null;
     const staff_id = formData.staff_id || formData.assigned_staff_id || null;
     const lead_type = formData.lead_type || formData["Lead Type"] || "Cold";
     const priority = formData.priority || formData.Priority || "Low";
@@ -4983,6 +4988,7 @@ app.post("/api/lead/website", async (req, res) => {
       ],
       branch_ids: [targetBranchId],
       source: leadSourceValue,
+      where_did_you_hear: where_did_you_hear || null,
       created_at: new Date().toISOString(),
       last_updated: new Date().toISOString(),
     };
