@@ -529,39 +529,39 @@ const SERVICES_LIST = [
   {
     id: "advanced_diploma",
     title: "1. Advanced Diploma",
-    description: "Advanced Diploma Programmes",
+    // description: "Advanced Diploma Programmes",
   },
   {
     id: "consultations",
     title: "2. Consultations",
-    description: "Patient Consultations",
+    // description: "Patient Consultations",
   },
   {
     id: "short_courses",
     title: "3. Online Short Courses",
-    description: "Online Short Courses",
+    // description: "Online Short Courses",
   },
   {
     id: "events",
     title: "4. Events & Programmes",
-    description: "Events and Programmes",
+    // description: "Events and Programmes",
   },
 ];
 
 const DIPLOMA_PROGRAMMES = [
   {
     id: "counselling_child_psychology",
-    title: "1.Child Psychology",
+    title: "Child Psychology",
     description: "Advanced Diploma in Counselling & Child Psychology",
   },
   {
     id: "counselling_organizational",
-    title: "2. Organizational Psychology",
+    title: "Organizational Psychology",
     description: "Advanced Diploma in Counselling & Organizational Psychology",
   },
   {
     id: "counselling_forensic",
-    title: "3. Forensic Psychology",
+    title: "Forensic Psychology",
     description: "Advanced Diploma in Counselling & Forensic Psychology",
   },
   {
@@ -1844,7 +1844,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (programmeEntry) {
       await sendText(
         from,
-        `Thank you for selecting ${programmeEntry.title
+        `Thank you for selecting ${programmeEntry.description
           .replace(/^[0-9️⃣\s]+/, "")
           .trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n${
           FORM_LINKS.enquiryOrApplication
