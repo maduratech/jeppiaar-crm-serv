@@ -528,22 +528,22 @@ async function sendOptionsList(
 const SERVICES_LIST = [
   {
     id: "advanced_diploma",
-    title: "1. Advanced Diploma",
+    title: "Advanced Diploma",
     // description: "Advanced Diploma Programmes",
   },
   {
     id: "consultations",
-    title: "2. Consultations",
+    title: "Consultations",
     // description: "Patient Consultations",
   },
   {
     id: "short_courses",
-    title: "3. Online Short Courses",
+    title: "Online Short Courses",
     // description: "Online Short Courses",
   },
   {
     id: "events",
-    title: "4. Events & Programmes",
+    title: "Events & Programmes",
     // description: "Events and Programmes",
   },
 ];
