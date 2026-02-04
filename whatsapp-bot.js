@@ -22,7 +22,7 @@ app.use(bodyParser.json());
 // -------------------------
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
 // -------------------------
@@ -86,7 +86,7 @@ function getBranchConfigFromPhoneNumberId(phoneNumberId) {
 
   // Fallback: Default to India/Branch 1 if no match
   console.warn(
-    `[BOT] ⚠️ Unknown phone number ID: ${phoneNumberId}. Defaulting to Branch 1 (India)`
+    `[BOT] ⚠️ Unknown phone number ID: ${phoneNumberId}. Defaulting to Branch 1 (India)`,
   );
   return {
     branchId: 1,
@@ -163,7 +163,7 @@ async function sendText(to, text) {
     };
 
     console.log(
-      `[BOT] 📤 Sending text to ${to}: "${text.substring(0, 50)}..."`
+      `[BOT] 📤 Sending text to ${to}: "${text.substring(0, 50)}..."`,
     );
 
     const response = await fetch(GRAPH_API_BASE, {
@@ -185,15 +185,15 @@ async function sendText(to, text) {
       ) {
         console.error(
           "[BOT] 🔴 TOKEN EXPIRED: WhatsApp token has expired!",
-          result.error?.message || ""
+          result.error?.message || "",
         );
         console.error(
-          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable"
+          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable",
         );
       } else {
         console.error(
           "[BOT] ❌ WhatsApp API Error:",
-          JSON.stringify(result, null, 2)
+          JSON.stringify(result, null, 2),
         );
       }
       return null;
@@ -201,7 +201,7 @@ async function sendText(to, text) {
 
     console.log(
       "[BOT] ✅ Message sent successfully:",
-      result.messages?.[0]?.id
+      result.messages?.[0]?.id,
     );
     return result;
   } catch (err) {
@@ -242,14 +242,14 @@ async function sendList(to, text, buttonText, sections) {
     if (!response.ok) {
       console.error(
         "[BOT] ❌ WhatsApp List Error:",
-        JSON.stringify(result, null, 2)
+        JSON.stringify(result, null, 2),
       );
       return null;
     }
 
     console.log(
       "[BOT] ✅ List message sent successfully:",
-      result.messages?.[0]?.id
+      result.messages?.[0]?.id,
     );
     return result;
   } catch (err) {
@@ -287,14 +287,14 @@ async function sendInteractive(to, text, buttons) {
     if (!response.ok) {
       console.error(
         "[BOT] ❌ WhatsApp Interactive Error:",
-        JSON.stringify(result, null, 2)
+        JSON.stringify(result, null, 2),
       );
       return null;
     }
 
     console.log(
       "[BOT] ✅ Interactive message sent successfully:",
-      result.messages?.[0]?.id
+      result.messages?.[0]?.id,
     );
     return result;
   } catch (err) {
@@ -308,7 +308,7 @@ async function sendConsultantTemplate(
   to,
   customerName,
   consultantName,
-  consultantPhone
+  consultantPhone,
 ) {
   try {
     const templatePayload = {
@@ -353,23 +353,23 @@ async function sendConsultantTemplate(
       ) {
         console.error(
           "[BOT] 🔴 TOKEN EXPIRED: WhatsApp token has expired!",
-          result.error?.message || ""
+          result.error?.message || "",
         );
         console.error(
-          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable"
+          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable",
         );
       } else {
         console.warn(
           `[BOT] ⚠️ Template failed. Falling back to text. Reason: ${JSON.stringify(
-            result
-          )}`
+            result,
+          )}`,
         );
       }
       return false;
     }
   } catch (templateErr) {
     console.warn(
-      `[BOT] ⚠️ Template attempt errored (will fallback to text): ${templateErr.message}`
+      `[BOT] ⚠️ Template attempt errored (will fallback to text): ${templateErr.message}`,
     );
     return false;
   }
@@ -383,7 +383,7 @@ async function sendCtaUrl(to, text, buttonText, url, agentName = "Agent") {
 
     // Log the URL being constructed for debugging
     console.log(
-      `[BOT] 🔗 sendCtaUrl - Full URL: ${url}, Query Params: ${queryParams}`
+      `[BOT] 🔗 sendCtaUrl - Full URL: ${url}, Query Params: ${queryParams}`,
     );
 
     const templatePayload = {
@@ -430,17 +430,17 @@ async function sendCtaUrl(to, text, buttonText, url, agentName = "Agent") {
       ) {
         console.error(
           "[BOT] 🔴 TOKEN EXPIRED: WhatsApp token has expired!",
-          result.error?.message || ""
+          result.error?.message || "",
         );
         console.error(
-          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable"
+          "[BOT] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable",
         );
         // Still try to fallback to text, but it will also fail with token expired
       } else {
         console.warn(
           `[BOT] ⚠️ Template failed (likely pending/rejected). Reason: ${JSON.stringify(
-            result
-          )}`
+            result,
+          )}`,
         );
       }
       console.log(`[BOT] 🔄 Falling back to Text Link...`);
@@ -487,7 +487,7 @@ async function sendOptionsList(
   to,
   questionText,
   options,
-  buttonLabel = "Select"
+  buttonLabel = "Select",
 ) {
   try {
     // WhatsApp API limit: Row title max 24 characters
@@ -551,7 +551,7 @@ const SERVICES_LIST = [
 const DIPLOMA_PROGRAMMES = [
   {
     id: "counselling_child_psychology",
-    title: "1. Child & Child Psychology",
+    title: "1.Child Psychology",
     description: "Advanced Diploma in Counselling & Child Psychology",
   },
   {
@@ -1057,7 +1057,7 @@ async function getCustomerByPhone(phone) {
   } catch (err) {
     console.error(
       "[BOT] ❌ Database error in getCustomerByPhone:",
-      err.message
+      err.message,
     );
     return null;
   }
@@ -1115,7 +1115,7 @@ async function captureInboundTextMessage(
   from,
   messageId,
   messageText,
-  branchId
+  branchId,
 ) {
   const normalizedPhone = sanitizePhoneNumber(from);
   if (!normalizedPhone) {
@@ -1147,7 +1147,7 @@ async function captureInboundTextMessage(
     } catch (e) {
       console.error(
         "[BOT] Capture: failed to create lead/customer:",
-        e.message
+        e.message,
       );
       return;
     }
@@ -1234,12 +1234,12 @@ async function captureInboundTextMessage(
       leadId,
       "WhatsApp",
       `Inbound: ${(messageText || "").slice(0, 200)}`,
-      "Prospect"
+      "Prospect",
     ).catch(() => {});
   }
   await sendText(
     from,
-    "Thanks, we've received your message. A counselor will get back to you shortly."
+    "Thanks, we've received your message. A counselor will get back to you shortly.",
   );
 }
 
@@ -1266,7 +1266,7 @@ async function updateUserSession(phone, updates, retryCount = 0) {
       if (isConnectionError && retryCount < 2) {
         // Wait before retry (exponential backoff)
         await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (retryCount + 1))
+          setTimeout(resolve, 1000 * (retryCount + 1)),
         );
         return updateUserSession(phone, updates, retryCount + 1);
       }
@@ -1287,7 +1287,7 @@ async function updateUserSession(phone, updates, retryCount = 0) {
 
     if (isConnectionError && retryCount < 2) {
       await new Promise((resolve) =>
-        setTimeout(resolve, 1000 * (retryCount + 1))
+        setTimeout(resolve, 1000 * (retryCount + 1)),
       );
       return updateUserSession(phone, updates, retryCount + 1);
     }
@@ -1295,7 +1295,7 @@ async function updateUserSession(phone, updates, retryCount = 0) {
     if (retryCount >= 2 || !isConnectionError) {
       console.error(
         "[BOT] ❌ Database error in updateUserSession:",
-        err.message
+        err.message,
       );
     }
     return null;
@@ -1381,7 +1381,7 @@ function formatLeadDataForAPI(userData) {
 
   console.log(
     "[BOT] 📦 Formatted Lead Data for API:",
-    JSON.stringify(leadData, null, 2)
+    JSON.stringify(leadData, null, 2),
   );
 
   return leadData;
@@ -1457,7 +1457,7 @@ async function askNextQuestion(from, user) {
     (q) =>
       !serviceData.hasOwnProperty(q.key) ||
       serviceData[q.key] === null ||
-      serviceData[q.key] === undefined
+      serviceData[q.key] === undefined,
   );
 
   // If we have a destination but are about to ask for a continent, skip it.
@@ -1467,7 +1467,7 @@ async function askNextQuestion(from, user) {
     remainingQuestions[0]?.key === "continent"
   ) {
     console.log(
-      "[BOT] 🧠 Destination already known, skipping continent question."
+      "[BOT] 🧠 Destination already known, skipping continent question.",
     );
     remainingQuestions.shift(); // Remove the continent question
   }
@@ -1479,7 +1479,7 @@ async function askNextQuestion(from, user) {
     remainingQuestions[0]?.key === "travel_timeframe"
   ) {
     console.log(
-      "[BOT] 📅 Travel dates already known, skipping travel_timeframe question."
+      "[BOT] 📅 Travel dates already known, skipping travel_timeframe question.",
     );
     remainingQuestions.shift(); // Remove the travel_timeframe question
   }
@@ -1498,11 +1498,11 @@ async function askNextQuestion(from, user) {
     await sendQuestion(from, remainingQuestions[0]);
   } else {
     console.log(
-      "[BOT] ✅ All questions completed. Submitting lead with complete data."
+      "[BOT] ✅ All questions completed. Submitting lead with complete data.",
     );
     await sendText(
       from,
-      "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+      "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
     );
     // Create lead only once when all questions are completed
     const updatedUser = { ...user, service_data: serviceData };
@@ -1516,7 +1516,7 @@ async function askNextQuestion(from, user) {
     } else {
       await sendText(
         from,
-        "Sorry, there was an issue creating your enquiry. Please try again later."
+        "Sorry, there was an issue creating your enquiry. Please try again later.",
       );
     }
   }
@@ -1590,7 +1590,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
       const dateObj = new Date(travelDate);
       confirmation += `\n• *Travel Date:* ${dateObj.toLocaleDateString(
         "en-GB",
-        { day: "numeric", month: "long", year: "numeric" }
+        { day: "numeric", month: "long", year: "numeric" },
       )}`;
     }
     if (extractedData.adults)
@@ -1624,7 +1624,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
     if (extractedData.needs_airfare) {
       serviceData.include_flights = "yes";
       console.log(
-        "[BOT] ✈️ Airfare detected - will automatically include Air Ticket service"
+        "[BOT] ✈️ Airfare detected - will automatically include Air Ticket service",
       );
     }
 
@@ -1632,7 +1632,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
     if (extractedData.needs_visa) {
       serviceData.include_visa = "yes";
       console.log(
-        "[BOT] 🛂 Visa detected - will automatically include Visa service"
+        "[BOT] 🛂 Visa detected - will automatically include Visa service",
       );
     }
 
@@ -1670,7 +1670,7 @@ async function handleAiExtractionFlow(from, user, messageText) {
     console.error("[BOT] ❌ AI Extraction or JSON parsing failed:", e);
     await sendText(
       from,
-      "I had a little trouble understanding all the details. Let's try step-by-step. What service are you interested in?"
+      "I had a little trouble understanding all the details. Let's try step-by-step. What service are you interested in?",
     );
     await sendOptionsList(from, "Select a service:", SERVICES_LIST, "Choose");
     await updateUserSession(from, {
@@ -1692,10 +1692,10 @@ async function handleStructuredTextMessage(from, user, messageText) {
     user.stage === "completed"
   ) {
     console.log(
-      "[BOT] 👋 Greeting or new conversation detected - Starting fresh flow"
+      "[BOT] 👋 Greeting or new conversation detected - Starting fresh flow",
     );
     const customer = await getCustomerByPhone(
-      sanitizePhoneNumber(from) || from
+      sanitizePhoneNumber(from) || from,
     );
 
     // If user exists in Supabase (customers) and we have a name, skip asking for name
@@ -1708,7 +1708,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (customer && displayName) {
       await sendText(
         from,
-        `Greetings, ${customer.first_name}! 👋\n\nWelcome to Jeppiaar Academy.\n\nPlease select the service you're interested in:`
+        `Greetings, ${customer.first_name}! 👋\n\nWelcome to Jeppiaar Academy.\n\nPlease select the service you're interested in:`,
       );
       await sendOptionsList(from, "Select Service:", SERVICES_LIST, "Choose");
 
@@ -1724,7 +1724,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     } else {
       await sendText(
         from,
-        "Hello! 👋\n\n*Welcome to Jeppiaar Academy.*\n\nTo assist you better, please share your *full name*:"
+        "Hello! 👋\n\n*Welcome to Jeppiaar Academy.*\n\nTo assist you better, please share your *full name*:",
       );
       await updateUserSession(from, {
         stage: "collecting_name",
@@ -1754,7 +1754,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     });
     await sendText(
       from,
-      "Thank you! 👋 Please select the service you're interested in:"
+      "Thank you! 👋 Please select the service you're interested in:",
     );
     await sendOptionsList(from, "Select Service:", SERVICES_LIST, "Choose");
     return true;
@@ -1776,13 +1776,13 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (serviceId === "advanced_diploma") {
       await sendText(
         from,
-        "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:"
+        "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:",
       );
       await sendOptionsList(
         from,
         "Select programme:",
         DIPLOMA_PROGRAMMES,
-        "Choose"
+        "Choose",
       );
       await updateUserSession(from, { stage: "selecting_diploma_programme" });
       return true;
@@ -1790,7 +1790,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (serviceId === "consultations") {
       await sendText(
         from,
-        "Thank you for reaching out.\n\nPlease select who the consultation is for:"
+        "Thank you for reaching out.\n\nPlease select who the consultation is for:",
       );
       await sendOptionsList(from, "Choose:", CONSULTATION_FOR, "Choose");
       await updateUserSession(from, { stage: "consultation_for" });
@@ -1799,7 +1799,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (serviceId === "short_courses") {
       await sendText(
         from,
-        `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}`
+        `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}`,
       );
       const updatedUser = {
         ...user,
@@ -1819,7 +1819,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (serviceId === "events") {
       await sendText(
         from,
-        "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:"
+        "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:",
       );
       await sendOptionsList(from, "Choose:", EVENTS_OPTIONS, "Choose");
       await updateUserSession(from, { stage: "selecting_events_option" });
@@ -1848,7 +1848,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           .replace(/^[0-9️⃣\s]+/, "")
           .trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n${
           FORM_LINKS.enquiryOrApplication
-        }\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`
+        }\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`,
       );
       const updatedUser = {
         ...user,
@@ -1877,7 +1877,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     });
     await sendText(
       from,
-      "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: First floor, EJR Enclave, 1/40H, Mount Poonamallee Rd, Ramapuram, Viralur, Parangi Malai, Chennai, St.Thomas Mount, Tamil Nadu 600016\n\nReply with the number to proceed."
+      "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: First floor, EJR Enclave, 1/40H, Mount Poonamallee Rd, Ramapuram, Viralur, Parangi Malai, Chennai, St.Thomas Mount, Tamil Nadu 600016\n\nReply with the number to proceed.",
     );
     await sendOptionsList(from, "Choose mode:", CONSULTATION_MODE, "Choose");
     await updateUserSession(from, { stage: "consultation_mode" });
@@ -1894,7 +1894,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       modeId === "online" ? "Online Consultation" : "Direct Consultation";
     await sendText(
       from,
-      `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`
+      `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`,
     );
     const updatedUser = {
       ...user,
@@ -1956,7 +1956,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       console.log("[BOT] ⚠️ Question queue is empty. Resetting.");
       await sendText(
         from,
-        "Something went wrong. Let's start over. Type *hi* to begin."
+        "Something went wrong. Let's start over. Type *hi* to begin.",
       );
       await updateUserSession(from, {
         stage: "collecting_name",
@@ -1973,7 +1973,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       console.log(
         `[BOT] 📝 Capturing text for 'other' option for key: ${
           currentQuestion.key || serviceData.awaiting_sub_destination
-        }`
+        }`,
       );
 
       // If we're in sub-destination flow (Europe/Africa), store in the sub-destination key
@@ -1994,7 +1994,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           // All questions completed
           await sendText(
             from,
-            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
           );
           const updatedUser = { ...user, service_data: serviceData };
           const leadResult = await submitLead(updatedUser);
@@ -2007,7 +2007,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           } else {
             await sendText(
               from,
-              "Sorry, there was an issue creating your enquiry. Please try again later."
+              "Sorry, there was an issue creating your enquiry. Please try again later.",
             );
           }
         }
@@ -2035,7 +2035,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
         console.log("[BOT] ✅ All questions completed. Submitting lead.");
         await sendText(
           from,
-          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
         );
         const leadResult = await submitLead(updatedUser);
         if (leadResult.success) {
@@ -2047,7 +2047,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
         } else {
           await sendText(
             from,
-            "Sorry, there was an issue creating your enquiry. Please try again later."
+            "Sorry, there was an issue creating your enquiry. Please try again later.",
           );
         }
       }
@@ -2057,7 +2057,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (currentQuestion.type !== "text") {
       await sendText(
         from,
-        "🤔 I was expecting a selection from the list. Please choose one of the options."
+        "🤔 I was expecting a selection from the list. Please choose one of the options.",
       );
       await sendQuestion(from, currentQuestion);
       return true;
@@ -2083,7 +2083,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       if (validationResult.status === "VALID") {
         serviceData[currentQuestion.key] = validationResult.answer;
         console.log(
-          `[BOT] 📝 Saving validated answer for ${currentQuestion.key}: ${validationResult.answer}`
+          `[BOT] 📝 Saving validated answer for ${currentQuestion.key}: ${validationResult.answer}`,
         );
 
         const remainingQuestions = questions.slice(1);
@@ -2098,7 +2098,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           console.log("[BOT] ✅ All questions completed. Submitting lead.");
           await sendText(
             from,
-            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
           );
           const updatedUser = { ...user, service_data: serviceData };
           const leadResult = await submitLead(updatedUser);
@@ -2111,7 +2111,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
           } else {
             await sendText(
               from,
-              "Sorry, there was an issue creating your enquiry. Please try again later."
+              "Sorry, there was an issue creating your enquiry. Please try again later.",
             );
           }
         }
@@ -2119,7 +2119,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
         // INVALID or QUESTION
         await sendText(
           from,
-          `I didn't quite get that. Let's try again.\n\n${currentQuestion.prompt}`
+          `I didn't quite get that. Let's try again.\n\n${currentQuestion.prompt}`,
         );
       }
     } catch (e) {
@@ -2135,11 +2135,11 @@ async function handleStructuredTextMessage(from, user, messageText) {
         await sendQuestion(from, remainingQuestions[0]);
       } else {
         console.log(
-          "[BOT] ✅ All questions completed (validation failed). Submitting lead."
+          "[BOT] ✅ All questions completed (validation failed). Submitting lead.",
         );
         await sendText(
           from,
-          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+          "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
         );
         const updatedUser = { ...user, service_data: serviceData };
         await submitLead(updatedUser);
@@ -2158,7 +2158,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     console.log("[BOT] ⚠️ Unhandled message or stage in structured flow.");
     await sendText(
       from,
-      "🤔 I didn't understand that.\n\nType *hi* to start a new enquiry."
+      "🤔 I didn't understand that.\n\nType *hi* to start a new enquiry.",
     );
     return true;
   }
@@ -2209,7 +2209,7 @@ app.post("/webhook", async (req, res) => {
           if (updateError) {
             console.warn(
               `[BOT] Failed to update message status to failed:`,
-              updateError.message
+              updateError.message,
             );
           } else {
             // Message status updated to failed (silent)
@@ -2227,7 +2227,7 @@ app.post("/webhook", async (req, res) => {
                 // Ignore if columns don't exist
                 console.warn(
                   `[BOT] Could not update error details (columns may not exist):`,
-                  err.message
+                  err.message,
                 );
               }
             }
@@ -2239,7 +2239,7 @@ app.post("/webhook", async (req, res) => {
         // For error 131047 (Re-engagement message), log a helpful message
         if (errorCode === 131047) {
           console.warn(
-            `[BOT] ⚠️ Re-engagement required for ${recipientId}. Customer needs to send a message first, or use a template message.`
+            `[BOT] ⚠️ Re-engagement required for ${recipientId}. Customer needs to send a message first, or use a template message.`,
           );
         }
 
@@ -2249,7 +2249,7 @@ app.post("/webhook", async (req, res) => {
             messageId,
             errorCode,
             errorTitle,
-            recipientId
+            recipientId,
           );
         }
       } else if (statusType === "delivered") {
@@ -2280,7 +2280,7 @@ app.post("/webhook", async (req, res) => {
     const message = value?.messages?.[0];
     if (!message) {
       console.log(
-        "[BOT] ⚠️ No message found in payload (likely a status update or other event)."
+        "[BOT] ⚠️ No message found in payload (likely a status update or other event).",
       );
       return;
     }
@@ -2289,17 +2289,17 @@ app.post("/webhook", async (req, res) => {
     const metadata = value?.metadata;
     const receivingPhoneNumberId = metadata?.phone_number_id;
     const branchConfig = getBranchConfigFromPhoneNumberId(
-      receivingPhoneNumberId
+      receivingPhoneNumberId,
     );
     const branchId = branchConfig.branchId;
 
     console.log(
-      `\n[BOT] 📞 Message received on phone number ID: ${receivingPhoneNumberId}`
+      `\n[BOT] 📞 Message received on phone number ID: ${receivingPhoneNumberId}`,
     );
     console.log(
       `[BOT] 🏢 Branch detected: ${branchId} (${
         branchId === 1 ? "India" : "Australia"
-      })`
+      })`,
     );
 
     const from = message.from;
@@ -2309,7 +2309,7 @@ app.post("/webhook", async (req, res) => {
     // Log the full message payload for debugging
     console.log(
       `[BOT] 🔍 Full message payload:`,
-      JSON.stringify(message, null, 2)
+      JSON.stringify(message, null, 2),
     );
     console.log(`[BOT] 🔍 Message type: ${message.type}`);
 
@@ -2327,7 +2327,7 @@ app.post("/webhook", async (req, res) => {
     const buttonMessage = message.button;
     if (message.type === "button" && buttonMessage) {
       console.log(
-        `[BOT] 🔘 Template button click detected! Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`
+        `[BOT] 🔘 Template button click detected! Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`,
       );
 
       // Normalize button payload/text for comparison
@@ -2351,7 +2351,7 @@ app.post("/webhook", async (req, res) => {
         const templateMessageId = message.context?.id;
         if (templateMessageId && messageIdToLeadCache) {
           console.log(
-            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`
+            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`,
           );
           const cached = messageIdToLeadCache.get(templateMessageId);
           if (cached && cached.leadId) {
@@ -2359,7 +2359,7 @@ app.post("/webhook", async (req, res) => {
             console.log(`[BOT] ✅ Found lead ID ${leadId} from message cache`);
           } else {
             console.log(
-              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`
+              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`,
             );
           }
         }
@@ -2367,14 +2367,14 @@ app.post("/webhook", async (req, res) => {
         // Fallback: Find most recent lead for this customer if we couldn't extract from template
         if (!leadId) {
           console.log(
-            `[BOT] 🔄 Fallback: Finding most recent lead for customer`
+            `[BOT] 🔄 Fallback: Finding most recent lead for customer`,
           );
           const customer = await getCustomerByPhone(from);
           if (!customer) {
             console.error(`[BOT] ❌ Could not find customer for phone ${from}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly."
+              "Sorry, I couldn't find your enquiry. Please contact us directly.",
             );
             return;
           }
@@ -2390,11 +2390,11 @@ app.post("/webhook", async (req, res) => {
           if (leadError) {
             console.error(
               `[BOT] ❌ Error finding lead for customer ${customer.id}:`,
-              leadError?.message
+              leadError?.message,
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly."
+              "Sorry, I couldn't find your enquiry. Please contact us directly.",
             );
             return;
           }
@@ -2403,14 +2403,14 @@ app.post("/webhook", async (req, res) => {
             console.error(`[BOT] ❌ No lead found for customer ${customer.id}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly."
+              "Sorry, I couldn't find your enquiry. Please contact us directly.",
             );
             return;
           }
 
           leadId = recentLead.id;
           console.log(
-            `[BOT] ✅ Found lead ${leadId} for customer ${customer.id}`
+            `[BOT] ✅ Found lead ${leadId} for customer ${customer.id}`,
           );
         }
 
@@ -2425,11 +2425,11 @@ app.post("/webhook", async (req, res) => {
         if (leadError || !lead) {
           console.error(
             `[BOT] ❌ Error fetching lead ${leadId}:`,
-            leadError?.message
+            leadError?.message,
           );
           await sendText(
             from,
-            "Sorry, there was a problem confirming your enquiry. Please try again."
+            "Sorry, there was a problem confirming your enquiry. Please try again.",
           );
         } else {
           // Only log activity that customer confirmed via WhatsApp
@@ -2437,16 +2437,16 @@ app.post("/webhook", async (req, res) => {
             leadId,
             "Customer Confirmed",
             "Customer confirmed the enquiry via WhatsApp button.",
-            "Customer"
+            "Customer",
           );
 
           console.log(
-            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`
+            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`,
           );
 
           await sendText(
             from,
-            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨"
+            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨",
           );
         }
         return;
@@ -2469,25 +2469,25 @@ app.post("/webhook", async (req, res) => {
         const templateMessageId = message.context?.id;
         if (templateMessageId && messageIdToLeadCache) {
           console.log(
-            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`
+            `[BOT] 🔍 Template message ID from context: ${templateMessageId}`,
           );
           const cached = messageIdToLeadCache.get(templateMessageId);
           if (cached) {
             if (cached.leadId) {
               leadId = cached.leadId;
               console.log(
-                `[BOT] ✅ Found lead ID ${leadId} from message cache`
+                `[BOT] ✅ Found lead ID ${leadId} from message cache`,
               );
             }
             if (cached.customerId) {
               customerId = cached.customerId;
               console.log(
-                `[BOT] ✅ Found customer ID ${customerId} from message cache`
+                `[BOT] ✅ Found customer ID ${customerId} from message cache`,
               );
             }
           } else {
             console.log(
-              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`
+              `[BOT] ⚠️ No cached lead mapping found for message ID ${templateMessageId}`,
             );
           }
         }
@@ -2495,14 +2495,14 @@ app.post("/webhook", async (req, res) => {
         // Fallback: Find most recent lead for this customer if we couldn't extract from template
         if (!leadId) {
           console.log(
-            `[BOT] 🔄 Fallback: Finding most recent lead for customer`
+            `[BOT] 🔄 Fallback: Finding most recent lead for customer`,
           );
           const customer = await getCustomerByPhone(from);
           if (!customer) {
             console.error(`[BOT] ❌ Could not find customer for phone ${from}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
             );
             return;
           }
@@ -2522,11 +2522,11 @@ app.post("/webhook", async (req, res) => {
           if (leadError) {
             console.error(
               `[BOT] ❌ Error finding lead for customer ${customer.id}:`,
-              leadError?.message
+              leadError?.message,
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
             );
             return;
           }
@@ -2535,7 +2535,7 @@ app.post("/webhook", async (req, res) => {
             console.error(`[BOT] ❌ No lead found for customer ${customer.id}`);
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
             );
             return;
           }
@@ -2546,7 +2546,7 @@ app.post("/webhook", async (req, res) => {
           if (recentLead.all_assignees && recentLead.all_assignees.length > 0) {
             staffId = recentLead.all_assignees[0].staff?.id;
             console.log(
-              `[BOT] ✅ Found lead ${leadId} with staff ${staffId} for customer ${customer.id}`
+              `[BOT] ✅ Found lead ${leadId} with staff ${staffId} for customer ${customer.id}`,
             );
           }
         } else {
@@ -2569,7 +2569,7 @@ app.post("/webhook", async (req, res) => {
           console.error(`[BOT] ❌ Could not determine lead ID`);
           await sendText(
             from,
-            "Sorry, I couldn't find your assigned consultant. Please contact us directly."
+            "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
           );
           return;
         }
@@ -2578,7 +2578,7 @@ app.post("/webhook", async (req, res) => {
           console.error(`[BOT] ❌ No staff assigned to lead ${leadId}`);
           await sendText(
             from,
-            "Sorry, I couldn't find your assigned consultant. Please contact us directly."
+            "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
           );
           return;
         }
@@ -2603,11 +2603,11 @@ app.post("/webhook", async (req, res) => {
         if (staffError || leadFetchError || !staff || !lead || !lead.customer) {
           console.error(
             `[BOT] ❌ Error fetching details for agent contact request:`,
-            staffError?.message || leadFetchError?.message
+            staffError?.message || leadFetchError?.message,
           );
           await sendText(
             from,
-            "Sorry, I couldn't process your request right now. Your agent will still be in touch."
+            "Sorry, I couldn't process your request right now. Your agent will still be in touch.",
           );
         } else {
           const sanitizedStaffPhone = sanitizePhoneNumber(staff.phone);
@@ -2649,7 +2649,7 @@ app.post("/webhook", async (req, res) => {
             from,
             customerName,
             staff.name,
-            consultantPhone
+            consultantPhone,
           );
 
           // Fallback to plain text if template fails
@@ -2663,7 +2663,7 @@ app.post("/webhook", async (req, res) => {
 
       // If button doesn't match known handlers, log and return
       console.warn(
-        `[BOT] ⚠️ Unhandled template button click. Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`
+        `[BOT] ⚠️ Unhandled template button click. Payload: "${buttonMessage.payload}", Text: "${buttonMessage.text}"`,
       );
       return;
     }
@@ -2672,7 +2672,7 @@ app.post("/webhook", async (req, res) => {
     const interactive = message.interactive;
     if (interactive) {
       console.log(
-        `[BOT] 🔘 Interactive message detected! Type: ${interactive.type}`
+        `[BOT] 🔘 Interactive message detected! Type: ${interactive.type}`,
       );
     }
 
@@ -2698,7 +2698,7 @@ app.post("/webhook", async (req, res) => {
         // Try to find customer by phone to link the message
         const phoneWithSpace = normalizedPhone.replace(
           /^(\+\d{1,4})(\d+)/,
-          "$1 $2"
+          "$1 $2",
         );
         const phoneWithoutSpace = normalizedPhone.replace(/\s/g, "");
         const { data: customer } = await supabase
@@ -2734,12 +2734,12 @@ app.post("/webhook", async (req, res) => {
           ) {
             console.warn(
               `[BOT] Table/column error: ${storeError.message}. ` +
-                `Please run the migration script: migrations/create_whatsapp_messages_table.sql`
+                `Please run the migration script: migrations/create_whatsapp_messages_table.sql`,
             );
           } else {
             console.warn(
               "[BOT] Failed to store incoming message:",
-              storeError.message
+              storeError.message,
             );
           }
         }
@@ -2764,7 +2764,7 @@ app.post("/webhook", async (req, res) => {
           branchIdError.message?.includes("schema cache")
         ) {
           console.log(
-            "[BOT] ℹ️ branch_id column not available in whatsapp_sessions table. Continuing without it."
+            "[BOT] ℹ️ branch_id column not available in whatsapp_sessions table. Continuing without it.",
           );
         } else {
           // Re-throw if it's a different error
@@ -2796,7 +2796,7 @@ app.post("/webhook", async (req, res) => {
       const { data: customer } = await supabase
         .from("customers")
         .select(
-          "whatsapp_automation_disabled, whatsapp_automation_disabled_until, last_staff_message_at"
+          "whatsapp_automation_disabled, whatsapp_automation_disabled_until, last_staff_message_at",
         )
         .eq("id", user.customer_id)
         .single();
@@ -2814,7 +2814,7 @@ app.post("/webhook", async (req, res) => {
           ) {
             // Time has passed, auto-enable automation
             console.log(
-              `[BOT] ⏰ Automation re-enabled for customer ${user.customer_id} (inactivity timeout expired).`
+              `[BOT] ⏰ Automation re-enabled for customer ${user.customer_id} (inactivity timeout expired).`,
             );
             await supabase
               .from("customers")
@@ -2830,7 +2830,7 @@ app.post("/webhook", async (req, res) => {
         // Check if automation should be auto-enabled (5 minutes after last staff message)
         if (!isAutomationDisabled && customer.last_staff_message_at) {
           const lastMessageTime = new Date(
-            customer.last_staff_message_at
+            customer.last_staff_message_at,
           ).getTime();
           const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
           if (lastMessageTime < fiveMinutesAgo) {
@@ -2859,7 +2859,7 @@ app.post("/webhook", async (req, res) => {
       console.log(
         `[BOT] ⏸️ Automation is disabled for customer ${
           user?.customer_id || "unknown"
-        }. Skipping all automated responses.`
+        }. Skipping all automated responses.`,
       );
       return; // Don't process any automated messages
     }
@@ -2874,7 +2874,7 @@ app.post("/webhook", async (req, res) => {
       // Log the full interactive payload for debugging
       console.log(
         `[BOT] 🔍 Full interactive payload:`,
-        JSON.stringify(interactive, null, 2)
+        JSON.stringify(interactive, null, 2),
       );
       console.log(`[BOT] 🔍 Button reply ID received: "${reply_id}"`);
 
@@ -2911,7 +2911,7 @@ app.post("/webhook", async (req, res) => {
             if (!leadError && recentLead) {
               leadId = recentLead.id;
               console.log(
-                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`
+                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`,
               );
             }
           }
@@ -2919,11 +2919,11 @@ app.post("/webhook", async (req, res) => {
 
         if (!leadId) {
           console.error(
-            `[BOT] ❌ Could not determine lead ID for confirm enquiry`
+            `[BOT] ❌ Could not determine lead ID for confirm enquiry`,
           );
           await sendText(
             from,
-            "Sorry, I couldn't find your enquiry. Please contact us directly."
+            "Sorry, I couldn't find your enquiry. Please contact us directly.",
           );
           return;
         }
@@ -2940,11 +2940,11 @@ app.post("/webhook", async (req, res) => {
         if (error || !lead) {
           console.error(
             `[BOT] ❌ Error fetching lead ${leadId}:`,
-            error?.message
+            error?.message,
           );
           await sendText(
             from,
-            "Sorry, there was a problem confirming your enquiry. Please try again."
+            "Sorry, there was a problem confirming your enquiry. Please try again.",
           );
         } else {
           // Only log activity that customer confirmed via WhatsApp
@@ -2952,16 +2952,16 @@ app.post("/webhook", async (req, res) => {
             leadId,
             "Customer Confirmed",
             "Customer confirmed the enquiry via WhatsApp button.",
-            "Customer"
+            "Customer",
           );
 
           console.log(
-            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`
+            `[BOT] ✅ Customer confirmed enquiry for lead ${leadId}. Activity logged.`,
           );
 
           await sendText(
             from,
-            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨"
+            "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨",
           );
         }
         return;
@@ -3011,7 +3011,7 @@ app.post("/webhook", async (req, res) => {
               ) {
                 staffId = recentLead.all_assignees[0].staff?.id;
                 console.log(
-                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`
+                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`,
                 );
               }
             }
@@ -3023,17 +3023,17 @@ app.post("/webhook", async (req, res) => {
 
         if (!leadId || !staffId) {
           console.error(
-            `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`
+            `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`,
           );
           await sendText(
             from,
-            "Sorry, I couldn't find your assigned consultant. Please contact us directly."
+            "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
           );
           return;
         }
 
         console.log(
-          `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`
+          `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`,
         );
 
         const { data: staff, error: staffError } = await supabase
@@ -3049,11 +3049,11 @@ app.post("/webhook", async (req, res) => {
 
         if (staffError || leadError || !staff || !lead || !lead.customer) {
           console.error(
-            `[BOT] ❌ Error fetching details for agent contact request.`
+            `[BOT] ❌ Error fetching details for agent contact request.`,
           );
           await sendText(
             from,
-            "Sorry, I couldn't process your request right now. Your agent will still be in touch."
+            "Sorry, I couldn't process your request right now. Your agent will still be in touch.",
           );
         } else {
           const sanitizedStaffPhone = sanitizePhoneNumber(staff.phone);
@@ -3084,7 +3084,7 @@ app.post("/webhook", async (req, res) => {
             from,
             customerName,
             staff.name,
-            consultantPhone
+            consultantPhone,
           );
 
           // Fallback to plain text if template fails
@@ -3104,11 +3104,11 @@ app.post("/webhook", async (req, res) => {
       } else if (interactive.type === "button_reply") {
         // Log unhandled button clicks for debugging (only for button_reply)
         console.warn(
-          `[BOT] ⚠️ Unhandled button click with ID: "${reply_id}" (normalized: "${normalizedReplyId}")`
+          `[BOT] ⚠️ Unhandled button click with ID: "${reply_id}" (normalized: "${normalizedReplyId}")`,
         );
         console.warn(
           `[BOT] ⚠️ Full button_reply object:`,
-          JSON.stringify(interactive.button_reply, null, 2)
+          JSON.stringify(interactive.button_reply, null, 2),
         );
 
         // Try to handle as "Confirm Enquiry" or "Talk to Agent" based on button title if ID doesn't match
@@ -3119,7 +3119,7 @@ app.post("/webhook", async (req, res) => {
           buttonTitle.includes("enquiry")
         ) {
           console.log(
-            `[BOT] 🔄 Attempting to handle as "Confirm Enquiry" based on button title: "${interactive.button_reply?.title}"`
+            `[BOT] 🔄 Attempting to handle as "Confirm Enquiry" based on button title: "${interactive.button_reply?.title}"`,
           );
           // Fall through to confirm enquiry handler logic
           let leadId = null;
@@ -3136,18 +3136,18 @@ app.post("/webhook", async (req, res) => {
             if (!leadError && recentLead) {
               leadId = recentLead.id;
               console.log(
-                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`
+                `[BOT] Found most recent lead ${leadId} for customer ${customer.id}`,
               );
             }
           }
 
           if (!leadId) {
             console.error(
-              `[BOT] ❌ Could not determine lead ID for confirm enquiry`
+              `[BOT] ❌ Could not determine lead ID for confirm enquiry`,
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your enquiry. Please contact us directly."
+              "Sorry, I couldn't find your enquiry. Please contact us directly.",
             );
             return;
           }
@@ -3164,16 +3164,16 @@ app.post("/webhook", async (req, res) => {
           if (error || !updatedLead) {
             console.error(
               `[BOT] ❌ Error updating lead status to Confirmed:`,
-              error?.message
+              error?.message,
             );
             await sendText(
               from,
-              "Sorry, there was a problem confirming your enquiry. Please try again."
+              "Sorry, there was a problem confirming your enquiry. Please try again.",
             );
           } else {
             await sendText(
               from,
-              "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨"
+              "Thank you for confirming! Your Travel Consultant will review the details and get in touch with you shortly. ✨",
             );
           }
           return;
@@ -3182,7 +3182,7 @@ app.post("/webhook", async (req, res) => {
           (buttonTitle.includes("talk") || buttonTitle.includes("agent"))
         ) {
           console.log(
-            `[BOT] 🔄 Attempting to handle as "Talk to Agent" based on button title: "${interactive.button_reply?.title}"`
+            `[BOT] 🔄 Attempting to handle as "Talk to Agent" based on button title: "${interactive.button_reply?.title}"`,
           );
           // Fall through to talk to agent handler logic
           let leadId = null;
@@ -3205,7 +3205,7 @@ app.post("/webhook", async (req, res) => {
               ) {
                 staffId = recentLead.all_assignees[0].staff?.id;
                 console.log(
-                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`
+                  `[BOT] Found most recent lead ${leadId} with staff ${staffId} for customer ${customer.id}`,
                 );
               }
             }
@@ -3216,17 +3216,17 @@ app.post("/webhook", async (req, res) => {
 
           if (!leadId || !staffId) {
             console.error(
-              `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`
+              `[BOT] ❌ Could not determine lead ID or staff ID for agent contact`,
             );
             await sendText(
               from,
-              "Sorry, I couldn't find your assigned consultant. Please contact us directly."
+              "Sorry, I couldn't find your assigned consultant. Please contact us directly.",
             );
             return;
           }
 
           console.log(
-            `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`
+            `[BOT] 🗣️ User requested agent contact for lead ${leadId}, staff ${staffId}`,
           );
 
           const { data: staff, error: staffError } = await supabase
@@ -3242,11 +3242,11 @@ app.post("/webhook", async (req, res) => {
 
           if (staffError || leadError || !staff || !lead || !lead.customer) {
             console.error(
-              `[BOT] ❌ Error fetching details for agent contact request.`
+              `[BOT] ❌ Error fetching details for agent contact request.`,
             );
             await sendText(
               from,
-              "Sorry, I couldn't process your request right now. Your agent will still be in touch."
+              "Sorry, I couldn't process your request right now. Your agent will still be in touch.",
             );
           } else {
             const sanitizedStaffPhone = sanitizePhoneNumber(staff.phone);
@@ -3277,7 +3277,7 @@ app.post("/webhook", async (req, res) => {
               from,
               customerName,
               staff.name,
-              consultantPhone
+              consultantPhone,
             );
 
             // Fallback to plain text if template fails
@@ -3293,7 +3293,7 @@ app.post("/webhook", async (req, res) => {
       // AI Confirmation Flow
       if (normalizedReplyId === "ai_confirm_yes") {
         console.log(
-          "[BOT] ✅ User confirmed AI data. Asking remaining questions."
+          "[BOT] ✅ User confirmed AI data. Asking remaining questions.",
         );
 
         // Don't create lead here - wait until all questions are completed
@@ -3303,17 +3303,17 @@ app.post("/webhook", async (req, res) => {
       }
       if (normalizedReplyId === "ai_confirm_no") {
         console.log(
-          "[BOT] ❌ User rejected AI data. Switching to structured flow."
+          "[BOT] ❌ User rejected AI data. Switching to structured flow.",
         );
         await sendText(
           from,
-          "My apologies! Let's get it right step-by-step. What service can I help you with?"
+          "My apologies! Let's get it right step-by-step. What service can I help you with?",
         );
         await sendOptionsList(
           from,
           "Select a service:",
           SERVICES_LIST,
-          "Choose"
+          "Choose",
         );
         await updateUserSession(from, {
           stage: "selecting_service",
@@ -3334,13 +3334,13 @@ app.post("/webhook", async (req, res) => {
         if (serviceId === "advanced_diploma") {
           await sendText(
             from,
-            "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:"
+            "Thank you for your interest.\n✔ Fee is the same for all specialisations\n✔ Weekday & Weekend batches available\n\nPlease select your preferred programme:",
           );
           await sendOptionsList(
             from,
             "Select programme:",
             DIPLOMA_PROGRAMMES,
-            "Choose"
+            "Choose",
           );
           await updateUserSession(from, {
             stage: "selecting_diploma_programme",
@@ -3350,7 +3350,7 @@ app.post("/webhook", async (req, res) => {
         if (serviceId === "consultations") {
           await sendText(
             from,
-            "Thank you for reaching out.\n\nPlease select who the consultation is for:"
+            "Thank you for reaching out.\n\nPlease select who the consultation is for:",
           );
           await sendOptionsList(from, "Choose:", CONSULTATION_FOR, "Choose");
           await updateUserSession(from, { stage: "consultation_for" });
@@ -3359,7 +3359,7 @@ app.post("/webhook", async (req, res) => {
         if (serviceId === "short_courses") {
           await sendText(
             from,
-            `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}`
+            `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}`,
           );
           const updatedUser = {
             ...user,
@@ -3382,7 +3382,7 @@ app.post("/webhook", async (req, res) => {
         if (serviceId === "events") {
           await sendText(
             from,
-            "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:"
+            "Thank you for your interest in our Events and Programmes.\n\nPlease select an option:",
           );
           await sendOptionsList(from, "Choose:", EVENTS_OPTIONS, "Choose");
           await updateUserSession(from, { stage: "selecting_events_option" });
@@ -3394,7 +3394,7 @@ app.post("/webhook", async (req, res) => {
       // Diploma programme selected (list_reply)
       if (user.stage === "selecting_diploma_programme") {
         const programmeEntry = DIPLOMA_PROGRAMMES.find(
-          (p) => p.id === (normalizedReplyId || reply_id)
+          (p) => p.id === (normalizedReplyId || reply_id),
         );
         if (programmeEntry) {
           await sendText(
@@ -3403,7 +3403,7 @@ app.post("/webhook", async (req, res) => {
               .replace(/^[0-9️⃣\s]+/, "")
               .trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n${
               FORM_LINKS.enquiryOrApplication
-            }\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`
+            }\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`,
           );
           const updatedUser = {
             ...user,
@@ -3434,13 +3434,13 @@ app.post("/webhook", async (req, res) => {
         });
         await sendText(
           from,
-          "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: St.Thomas Mount, Chennai\n\nTap your choice below."
+          "Thank you.\n\nPlease choose your preferred mode of consultation:\n\n1️⃣ *Online Consultation* – ₹6000 (60 minutes)\n2️⃣ *Direct / In-Person Consultation* – ₹4000 (60 minutes)\n📍 Location: St.Thomas Mount, Chennai\n\nTap your choice below.",
         );
         await sendOptionsList(
           from,
           "Choose mode:",
           CONSULTATION_MODE,
-          "Choose"
+          "Choose",
         );
         await updateUserSession(from, { stage: "consultation_mode" });
         return;
@@ -3454,7 +3454,7 @@ app.post("/webhook", async (req, res) => {
             : "Direct Consultation";
         await sendText(
           from,
-          `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`
+          `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`,
         );
         const updatedUser = {
           ...user,
@@ -3515,7 +3515,7 @@ app.post("/webhook", async (req, res) => {
           const keyLabel = currentQuestion.key.replace(/_/g, " ");
           await sendText(
             from,
-            `Please type the ${keyLabel} you're looking for.`
+            `Please type the ${keyLabel} you're looking for.`,
           );
           serviceData.awaiting_other_text = true;
           await updateUserSession(from, { service_data: serviceData });
@@ -3542,7 +3542,7 @@ app.post("/webhook", async (req, res) => {
               reply_id === "europe" ? "Europe" : "Africa"
             }:`,
             subOptions,
-            "Choose"
+            "Choose",
           );
 
           // Update service data and keep the same question key but mark we're in sub-selection
@@ -3592,7 +3592,7 @@ app.post("/webhook", async (req, res) => {
             // All questions completed
             await sendText(
               from,
-              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
             );
             const updatedUser = { ...user, service_data: serviceData };
             const leadResult = await submitLead(updatedUser);
@@ -3605,7 +3605,7 @@ app.post("/webhook", async (req, res) => {
             } else {
               await sendText(
                 from,
-                "Sorry, there was an issue creating your enquiry. Please try again later."
+                "Sorry, there was an issue creating your enquiry. Please try again later.",
               );
             }
           }
@@ -3618,7 +3618,7 @@ app.post("/webhook", async (req, res) => {
           if (normalizedReplyId === "other" || reply_id === "other") {
             await sendText(
               from,
-              "Please type the specific destination you're looking for."
+              "Please type the specific destination you're looking for.",
             );
             serviceData.awaiting_other_text = true;
             serviceData.awaiting_sub_destination =
@@ -3643,7 +3643,7 @@ app.post("/webhook", async (req, res) => {
             // All questions completed
             await sendText(
               from,
-              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+              "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
             );
             const updatedUser = { ...user, service_data: serviceData };
             const leadResult = await submitLead(updatedUser);
@@ -3656,7 +3656,7 @@ app.post("/webhook", async (req, res) => {
             } else {
               await sendText(
                 from,
-                "Sorry, there was an issue creating your enquiry. Please try again later."
+                "Sorry, there was an issue creating your enquiry. Please try again later.",
               );
             }
           }
@@ -3679,7 +3679,7 @@ app.post("/webhook", async (req, res) => {
           (q) =>
             !serviceData.hasOwnProperty(q.key) ||
             serviceData[q.key] === null ||
-            serviceData[q.key] === undefined
+            serviceData[q.key] === undefined,
         );
 
         if (remainingQuestions.length > 0) {
@@ -3692,7 +3692,7 @@ app.post("/webhook", async (req, res) => {
           console.log("[BOT] ✅ All questions completed. Submitting lead.");
           await sendText(
             from,
-            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!"
+            "Perfect! Getting you the best deal! One of our team members will contact you soon. Thank you!",
           );
           const updatedUser = { ...user, service_data: serviceData };
           const leadResult = await submitLead(updatedUser);
@@ -3705,7 +3705,7 @@ app.post("/webhook", async (req, res) => {
           } else {
             await sendText(
               from,
-              "Sorry, there was an issue creating your enquiry. Please try again later."
+              "Sorry, there was an issue creating your enquiry. Please try again later.",
             );
           }
         }
@@ -3723,11 +3723,11 @@ app.post("/webhook", async (req, res) => {
           interactive.type
         }, Button ID: ${interactive.button_reply?.id || "N/A"}, Title: ${
           interactive.button_reply?.title || "N/A"
-        }`
+        }`,
       );
       console.warn(
         `[BOT] ⚠️ Full interactive object:`,
-        JSON.stringify(interactive, null, 2)
+        JSON.stringify(interactive, null, 2),
       );
       return; // Don't fall through to text handler
     }
@@ -3738,7 +3738,7 @@ app.post("/webhook", async (req, res) => {
       const handled = await handleStructuredTextMessage(
         from,
         user,
-        messageText
+        messageText,
       );
       if (handled) return;
       await captureInboundTextMessage(from, messageId, messageText, branchId);
@@ -3746,7 +3746,7 @@ app.post("/webhook", async (req, res) => {
     }
 
     console.log(
-      "[BOT] ⚠️ Unhandled message type (e.g., image, location). Ignoring."
+      "[BOT] ⚠️ Unhandled message type (e.g., image, location). Ignoring.",
     );
   } catch (err) {
     console.error("\n[BOT] ❌ UNCAUGHT WEBHOOK ERROR:", err.stack || err);
