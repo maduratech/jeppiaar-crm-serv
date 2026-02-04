@@ -1884,7 +1884,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     return true;
   }
 
-  // ========================= CONSULTATION MODE (TEXT 1-2) =========================
+  // ========================= CONSULTATION MODE =========================
   if (
     user.stage === "consultation_mode" &&
     /^[1-2]$/.test(messageText.trim())
@@ -1894,7 +1894,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       modeId === "online" ? "Online Consultation" : "Direct Consultation";
     await sendText(
       from,
-      `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`,
+      `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session\nOur team will review your details and contact you shortly to confirm your appointment.`,
     );
     const updatedUser = {
       ...user,
@@ -3454,7 +3454,7 @@ app.post("/webhook", async (req, res) => {
             : "Direct Consultation";
         await sendText(
           from,
-          `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session:\n${FORM_LINKS.consultation}\n\nOur team will review your details and contact you shortly to confirm your appointment.\n\nWe look forward to supporting you.`,
+          `Thank you for choosing ${modeLabel}.\n\nOur team will review your details and contact you shortly to confirm your appointment.`,
         );
         const updatedUser = {
           ...user,
