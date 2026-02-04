@@ -556,7 +556,7 @@ const DIPLOMA_PROGRAMMES = [
   },
   {
     id: "counselling_organizational",
-    title: "Organizational Psychology",
+    title: "Organization Psychology",
     description: "Advanced Diploma in Counselling & Organizational Psychology",
   },
   {
@@ -1798,7 +1798,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (serviceId === "short_courses") {
       await sendText(
         from,
-        `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details:\n${FORM_LINKS.voxdemy}`,
+        `Thank you for your interest in our short-term online courses.\n\nClick the link below to explore course details & registration\n${FORM_LINKS.voxdemy}`,
       );
       const updatedUser = {
         ...user,
@@ -1893,7 +1893,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
       modeId === "online" ? "Online Consultation" : "Direct Consultation";
     await sendText(
       from,
-      `Thank you for choosing ${modeLabel}.\n\nPlease fill the consultation form below to schedule your session\nOur team will review your details and contact you shortly to confirm your appointment.`,
+      `You have chosen ${modeLabel}.\n\nOur team will get back to you shortly.`,
     );
     const updatedUser = {
       ...user,
@@ -3400,9 +3400,7 @@ app.post("/webhook", async (req, res) => {
             from,
             `Thank you for selecting ${programmeEntry.title
               .replace(/^[0-9️⃣\s]+/, "")
-              .trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nPlease fill this application form to proceed:\n${
-              FORM_LINKS.enquiryOrApplication
-            }\n\nOur admissions team will contact you after submission.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`,
+              .trim()}.\n\n*Fee:* ₹98,000 per semester\n(2-Semester Programme | Inclusive of all)\nEMI & Semester-wise payment options available.\n\nOur admissions team will contact you shortly.\n\nYou may also explore detailed curriculum and programme insights here:\n🌐 www.jeppiaaracademy.com`,
           );
           const updatedUser = {
             ...user,
@@ -3453,7 +3451,7 @@ app.post("/webhook", async (req, res) => {
             : "Direct Consultation";
         await sendText(
           from,
-          `Thank you for choosing ${modeLabel}.\n\nOur team will review your details and contact you shortly to confirm your appointment.`,
+          `Thank you for choosing ${modeLabel}.\n\nOur team will get back to you shortly.`,
         );
         const updatedUser = {
           ...user,
