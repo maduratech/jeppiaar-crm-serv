@@ -487,21 +487,24 @@ async function sendOptionsList(
   to,
   questionText,
   options,
-  buttonLabel = "Select"
+  buttonLabel = "Select",
+  descriptionOnly = false
 ) {
   try {
     // WhatsApp API limit: Row title max 24 characters
-    // WhatsApp: row title max 24 chars, description max 72 – prefer short title + description for full text
+    // descriptionOnly: show only description (one line); otherwise title + description
     const sections = [
       {
         title: "Options",
         rows: options.map((opt) => {
-          let title = (opt.title || "").trim();
+          const desc = (opt.description || "").trim();
+          const titleRaw = (opt.title || "").trim();
+          let title = descriptionOnly ? desc || titleRaw : titleRaw;
           if (title.length > 24) title = title.substring(0, 24);
           return {
             id: opt.id,
             title,
-            description: (opt.description || "").trim() || undefined,
+            description: descriptionOnly ? undefined : desc || undefined,
           };
         }),
       },
@@ -1785,7 +1788,8 @@ async function handleStructuredTextMessage(from, user, messageText) {
         from,
         "Select programme:",
         DIPLOMA_PROGRAMMES,
-        "Choose"
+        "Choose",
+        true
       );
       await updateUserSession(from, { stage: "selecting_diploma_programme" });
       return true;
@@ -3345,7 +3349,8 @@ app.post("/webhook", async (req, res) => {
             from,
             "Select programme:",
             DIPLOMA_PROGRAMMES,
-            "Choose"
+            "Choose",
+            true
           );
           await updateUserSession(from, {
             stage: "selecting_diploma_programme",
