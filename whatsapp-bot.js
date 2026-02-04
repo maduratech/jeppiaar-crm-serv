@@ -586,8 +586,7 @@ const CONSULTATION_MODE = [
   {
     id: "direct",
     title: "In-Person Consultation",
-    description:
-      "Direct/In-Person Consultation – ₹4000 (60 min), St.Thomas Mount, Chennai",
+    description: "Direct/In-Person Consultation – ₹4000 (60 min)",
   },
 ];
 
