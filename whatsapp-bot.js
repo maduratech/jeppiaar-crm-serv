@@ -533,7 +533,7 @@ const SERVICES_LIST = [
   },
   {
     id: "consultations",
-    title: "Consultations",
+    title: "Patient Consultations",
     // description: "Patient Consultations",
   },
   {
@@ -566,26 +566,26 @@ const DIPLOMA_PROGRAMMES = [
   },
   {
     id: "art_therapy",
-    title: "4. Art Therapy",
+    title: "Art Therapy",
     description: "Advanced Diploma in Art Therapy",
   },
 ];
 
 const CONSULTATION_FOR = [
-  { id: "yourself", title: "1️⃣ Yourself" },
-  { id: "family_member", title: "2️⃣ Family Member" },
-  { id: "friend", title: "3️⃣ Friend" },
+  { id: "yourself", title: "Yourself" },
+  { id: "family_member", title: " Family Member" },
+  { id: "friend", title: "Friend" },
 ];
 
 const CONSULTATION_MODE = [
   {
     id: "online",
-    title: "1. Online – ₹6000 (60 min)",
+    title: "Online Consultation",
     description: "Online Consultation – ₹6000 (60 minutes)",
   },
   {
     id: "direct",
-    title: "2. In-Person – ₹4000",
+    title: "In-Person Consultation",
     description:
       "Direct/In-Person Consultation – ₹4000 (60 min), St.Thomas Mount, Chennai",
   },
