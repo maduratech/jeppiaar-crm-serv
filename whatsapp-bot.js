@@ -593,27 +593,27 @@ const CONSULTATION_MODE = [
 const EVENTS_OPTIONS = [
   {
     id: "chief_guest",
-    title: "1. Chief Guest",
+    title: "Chief Guest",
     description: "Invite Dr. Saranya Jaikumar as Chief Guest",
   },
   {
     id: "workshop_teachers",
-    title: "2. Workshop – Teachers",
+    title: "Workshop – Teachers",
     description: "Workshop for Teachers",
   },
   {
     id: "workshop_students",
-    title: "3. Workshop – Students",
+    title: "Workshop – Students",
     description: "Workshop for Students",
   },
   {
     id: "workshop_parents",
-    title: "4. Workshop – Parents",
+    title: "Workshop – Parents",
     description: "Workshop for Parents",
   },
   {
     id: "workshop_organisations",
-    title: "5. Workshop – Orgs",
+    title: "Workshop – Organizations",
     description: "Workshop for Organizations",
   },
 ];
@@ -1707,7 +1707,7 @@ async function handleStructuredTextMessage(from, user, messageText) {
     if (customer && displayName) {
       await sendText(
         from,
-        `Greetings, ${customer.first_name}! 👋\n\nWelcome to Jeppiaar Academy.\n\nPlease select the service you're interested in:`,
+        `Greetings, ${customer.first_name}! 👋\n\nWelcome to Jeppiaar Academy of Pyschology and Research.\n\nPlease select the service you're interested in:`,
       );
       await sendOptionsList(from, "Select Service:", SERVICES_LIST, "Choose");
 
@@ -3477,11 +3477,11 @@ app.post("/webhook", async (req, res) => {
       if (user.stage === "selecting_events_option") {
         const optionId = normalizedReplyId || reply_id;
         const messages = {
-          chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nPlease fill the event details form below:\n${FORM_LINKS.eventChiefGuest}\n\nOur team will review and get back to you.`,
-          workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-          workshop_students: `Thank you for your interest in conducting a students workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-          workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nPlease fill this workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will review your inputs and contact you to discuss further details, scheduling, and customization.`,
-          workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nPlease fill this corporate workshop request form:\n${FORM_LINKS.workshop}\n\nOur team will connect with you to discuss customization, budget, and logistics.`,
+          chief_guest: `Thank you for your interest in inviting Dr. Saranya Jaikumar.\n\nOur team will get back to you shortly.`,
+          workshop_teachers: `Thank you for your interest in conducting a teachers workshop.\n\nOur team will get back to you shortly.`,
+          workshop_students: `Thank you for your interest in conducting a students workshop.\n\nOur team will get back to you shortly.`,
+          workshop_parents: `Thank you for your interest in conducting a parent workshop.\n\nOur team will get back to you shortly.`,
+          workshop_organisations: `Thank you for your interest in conducting an organisational workshop.\n\nOur team will get back to you shortly.`,
         };
         const msg = messages[optionId];
         if (msg) {
