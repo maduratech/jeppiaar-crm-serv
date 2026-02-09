@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
@@ -203,7 +203,7 @@ export async function handleWhatsAppMessageFailure(
   const cached = messageIdToLeadCache.get(messageId);
   if (!cached) {
     console.log(
-      `[CRM] ⚠️ Message failure for ${messageId} but no cached lead mapping found.`
+      `[CRM] âš ï¸ Message failure for ${messageId} but no cached lead mapping found.`
     );
     return;
   }
@@ -231,7 +231,7 @@ export async function handleWhatsAppMessageFailure(
   }
 
   console.error(
-    `[CRM] ❌ ${errorMessage} (Lead: ${leadId}, Message ID: ${messageId})`
+    `[CRM] âŒ ${errorMessage} (Lead: ${leadId}, Message ID: ${messageId})`
   );
 
   // Log to lead activity
@@ -494,7 +494,7 @@ function setupGlobalListeners() {
   try {
     const channel = supabase.channel("global-listeners");
 
-    // INSERT on leads: Send MTS summary once (after staff assignment if needed)
+    // INSERT on leads: Log only (auto staff assignment removed)
     channel.on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "leads" },
@@ -504,101 +504,6 @@ function setupGlobalListeners() {
           "[GlobalListener] New lead inserted:",
           record?.id || record
         );
-        try {
-          if (!record || !record.customer_id) return;
-
-          // Fetch customer details
-          const { data: customer } = await supabase
-            .from("customers")
-            .select("*")
-            .eq("id", record.customer_id)
-            .single();
-
-          if (!customer) {
-            console.error(
-              `[GlobalListener] Customer not found for lead ${record.id}`
-            );
-            return;
-          }
-
-          // Check if summary was already sent (prevent duplicates)
-          const recentSummarySent = (record.activity || []).some(
-            (act) =>
-              (act.type === "Summary Sent" || act.type === "WhatsApp Sent") &&
-              (act.description?.includes("Summary sent") ||
-                act.description?.includes("template")) &&
-              new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
-          );
-
-          if (recentSummarySent) {
-            console.log(
-              `[GlobalListener] Summary already sent recently for lead ${record.id}. Skipping duplicate.`
-            );
-            // Still trigger assignment even if summary was sent (event-driven for this specific lead)
-            try {
-              assignLeadsAndGenerateItineraries(record.id).catch((e) =>
-                console.error(
-                  "[GlobalListener] Error triggering assignment/itinerary:",
-                  e?.message || e
-                )
-              );
-            } catch (e) {
-              console.error(
-                "[GlobalListener] Failed to call assignLeadsAndGenerateItineraries:",
-                e?.message || e
-              );
-            }
-            return;
-          }
-
-          // Check if staff is already assigned
-          const { data: leadWithAssignees } = await supabase
-            .from("leads")
-            .select("*, all_assignees:lead_assignees(staff(*))")
-            .eq("id", record.id)
-            .single();
-
-          if (
-            leadWithAssignees?.all_assignees &&
-            leadWithAssignees.all_assignees.length > 0
-          ) {
-            // Staff already assigned - DISABLED: MTS summary auto-sending
-            // const staff = leadWithAssignees.all_assignees[0].staff;
-            // console.log(
-            //   `[GlobalListener] Staff already assigned (${staff.name}). Sending MTS summary immediately for lead ${record.id}`
-            // );
-            // await sendWelcomeWhatsapp(leadWithAssignees, customer, staff);
-            console.log(
-              `[GlobalListener] Staff already assigned for lead ${record.id}. MTS summary auto-sending is disabled.`
-            );
-          } else {
-            // No staff yet - trigger assignment for this specific lead (event-driven)
-            // Summary will be sent by the lead_assignees INSERT listener when staff is assigned
-            console.log(
-              `[GlobalListener] No staff assigned yet for lead ${record.id}. Triggering event-driven assignment. Summary will be sent when staff is assigned.`
-            );
-
-            // Trigger assignment for this specific lead (much faster than batch processing)
-            try {
-              assignLeadsAndGenerateItineraries(record.id).catch((e) =>
-                console.error(
-                  "[GlobalListener] Error triggering assignment:",
-                  e?.message || e
-                )
-              );
-            } catch (e) {
-              console.error(
-                "[GlobalListener] Failed to call assignLeadsAndGenerateItineraries:",
-                e?.message || e
-              );
-            }
-          }
-        } catch (err) {
-          console.error(
-            "[GlobalListener] Error handling new lead insert:",
-            err.message
-          );
-        }
       }
     );
 
@@ -706,11 +611,11 @@ function setupGlobalListeners() {
                     .update({ notified_status: "Feedback" })
                     .eq("id", newRec.id);
                   console.log(
-                    `[GlobalListener] ✅ Feedback template sent for lead ${newRec.id}`
+                    `[GlobalListener] âœ… Feedback template sent for lead ${newRec.id}`
                   );
                 } else {
                   console.log(
-                    `[GlobalListener] ⚠️ Customer not found for lead ${newRec.id}. Cannot send feedback.`
+                    `[GlobalListener] âš ï¸ Customer not found for lead ${newRec.id}. Cannot send feedback.`
                   );
                 }
               } catch (feedbackError) {
@@ -870,11 +775,11 @@ function setupGlobalListeners() {
                     //     primaryStaff
                     //   );
                     //   console.log(
-                    //     `[GlobalListener] ✅ Updated summary sent successfully to customer for lead ${newRec.id}`
+                    //     `[GlobalListener] âœ… Updated summary sent successfully to customer for lead ${newRec.id}`
                     //   );
                     // } catch (summaryError) {
                     //   console.error(
-                    //     `[GlobalListener] ❌ Error sending updated summary to customer for lead ${newRec.id}:`,
+                    //     `[GlobalListener] âŒ Error sending updated summary to customer for lead ${newRec.id}:`,
                     //     summaryError.message
                     //   );
                     //   // Log error to lead activity
@@ -896,7 +801,7 @@ function setupGlobalListeners() {
                 }
               } else {
                 console.log(
-                  `[GlobalListener] ⚠️ Cannot send summary for lead ${newRec.id}: Customer phone not available.`
+                  `[GlobalListener] âš ï¸ Cannot send summary for lead ${newRec.id}: Customer phone not available.`
                 );
               }
             } // End of validation.isValid check
@@ -920,9 +825,9 @@ function setupGlobalListeners() {
 
     channel.subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
-        console.log("[GlobalListener] ✅ Subscribed to global DB changes.");
+        console.log("[GlobalListener] âœ… Subscribed to global DB changes.");
       } else if (err) {
-        console.error("[GlobalListener] ❌ Subscription error:", err);
+        console.error("[GlobalListener] âŒ Subscription error:", err);
       }
     });
   } catch (err) {
@@ -1090,7 +995,7 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
 
   if (!customer.phone) {
     console.log(
-      `[CRM] ⚠️ Customer alert not sent for lead ${lead.id}: No phone number found for customer ${customer.id}.`
+      `[CRM] âš ï¸ Customer alert not sent for lead ${lead.id}: No phone number found for customer ${customer.id}.`
     );
     await logLeadActivity(
       lead.id,
@@ -1111,7 +1016,7 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
 
   if (recentSummarySent) {
     console.log(
-      `[CRM] ⚠️ Summary template already sent recently for lead ${lead.id}. Skipping duplicate.`
+      `[CRM] âš ï¸ Summary template already sent recently for lead ${lead.id}. Skipping duplicate.`
     );
     return false;
   }
@@ -1125,7 +1030,7 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
 
   if (customerAlreadyConfirmed && lead.status === "Confirmed") {
     console.log(
-      `[CRM] ⚠️ Customer already confirmed via WhatsApp button for lead ${lead.id}. Skipping duplicate summary send.`
+      `[CRM] âš ï¸ Customer already confirmed via WhatsApp button for lead ${lead.id}. Skipping duplicate summary send.`
     );
     return false;
   }
@@ -1142,7 +1047,7 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
       .map(([field]) => field)
       .join(", ");
     console.log(
-      `[CRM] ⚠️ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`
+      `[CRM] âš ï¸ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`
     );
     await logLeadActivity(
       lead.id,
@@ -1162,7 +1067,7 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
     .join(", ");
   if (optionalMissingFields) {
     console.log(
-      `[CRM] ℹ️ MTS summary will be sent for lead ${lead.id} but missing optional fields: ${optionalMissingFields}`
+      `[CRM] â„¹ï¸ MTS summary will be sent for lead ${lead.id} but missing optional fields: ${optionalMissingFields}`
     );
   }
 
@@ -1204,20 +1109,20 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
     if (cleaned.startsWith("+91") || cleaned.startsWith("919")) {
       sanitizedPhone = cleaned.startsWith("+") ? cleaned : `+${cleaned}`;
       console.log(
-        `[CRM] 📞 Manual phone normalization: ${customer.phone} → ${sanitizedPhone}`
+        `[CRM] ðŸ“ž Manual phone normalization: ${customer.phone} â†’ ${sanitizedPhone}`
       );
     } else if (cleaned.length === 10) {
       // 10 digits - assume India
       sanitizedPhone = `+91${cleaned}`;
       console.log(
-        `[CRM] 📞 Manual phone normalization (10 digits): ${customer.phone} → ${sanitizedPhone}`
+        `[CRM] ðŸ“ž Manual phone normalization (10 digits): ${customer.phone} â†’ ${sanitizedPhone}`
       );
     }
   }
 
   if (!sanitizedPhone) {
     console.error(
-      `[CRM] ❌ Could not normalize customer phone for lead ${lead.id}: ${customer.phone}`
+      `[CRM] âŒ Could not normalize customer phone for lead ${lead.id}: ${customer.phone}`
     );
     await logLeadActivity(
       lead.id,
@@ -1228,13 +1133,13 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
   }
 
   console.log(
-    `[CRM] 📞 Normalized phone to ${sanitizedPhone} for lead ${lead.id} (original: ${customer.phone})`
+    `[CRM] ðŸ“ž Normalized phone to ${sanitizedPhone} for lead ${lead.id} (original: ${customer.phone})`
   );
 
   // Send mts_summary template (includes welcome message + confirmation buttons)
   // This is the ONLY message sent - it serves as both welcome and confirmation
   console.log(
-    `[CRM] 📤 Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`
+    `[CRM] ðŸ“¤ Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`
   );
 
   const result = await sendCrmWhatsappTemplate(
@@ -1255,11 +1160,11 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
         timestamp: Date.now(),
       });
       console.log(
-        `[CRM] ✅ mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id}. Message ID: ${messageId}`
+        `[CRM] âœ… mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id}. Message ID: ${messageId}`
       );
     } else {
       console.log(
-        `[CRM] ✅ mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id} (no message ID in response).`
+        `[CRM] âœ… mts_summary template sent successfully to ${sanitizedPhone} for lead ${lead.id} (no message ID in response).`
       );
     }
     await logLeadActivity(
@@ -1269,7 +1174,7 @@ async function sendWelcomeWhatsapp(lead, customer, staff) {
     );
   } else {
     console.error(
-      `[CRM] ❌ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved or phone number invalid.`
+      `[CRM] âŒ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved or phone number invalid.`
     );
     await logLeadActivity(
       lead.id,
@@ -1303,7 +1208,7 @@ async function sendStaffAssignmentNotification(
 
   if (!assignee.phone) {
     console.log(
-      `[CRM] ⚠️ Staff alert not sent for lead ${lead.id}: No phone number found for staff ${assignee.name}.`
+      `[CRM] âš ï¸ Staff alert not sent for lead ${lead.id}: No phone number found for staff ${assignee.name}.`
     );
     await logLeadActivity(
       lead.id,
@@ -1342,7 +1247,7 @@ async function sendStaffAssignmentNotification(
 
     // Build message parts conditionally based on service type
     const messageParts = [
-      `*New Lead Assigned!* 🚀`,
+      `*New Lead Assigned!* ðŸš€`,
       ``,
       `*Lead Number:* ${leadNumber}`,
       `*Services:* ${allServices}`,
@@ -1403,7 +1308,7 @@ async function sendStaffAssignmentNotification(
       hasTravelService && lead.destination && lead.destination !== "N/A"
         ? ` to *${lead.destination}*`
         : "";
-    message = `*New Task Assigned!* 🛂\n\nYou've been assigned the *${specificService}* service for Lead ${leadNumber}${destinationText}.\n\nPlease coordinate with the primary agent, *${primaryAssigneeName}*, to process this request.`;
+    message = `*New Task Assigned!* ðŸ›‚\n\nYou've been assigned the *${specificService}* service for Lead ${leadNumber}${destinationText}.\n\nPlease coordinate with the primary agent, *${primaryAssigneeName}*, to process this request.`;
   }
 
   const initiateCallUrl = `https://api.jeppiaaracademy.com/api/initiate-call?leadId=${lead.id}&staffId=${assignee.id}&phone=${customerPhoneSanitized}`;
@@ -1422,13 +1327,13 @@ async function sendStaffAssignmentNotification(
         ? cleaned
         : `+${cleaned}`;
       console.log(
-        `[CRM] Manual phone normalization for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`
+        `[CRM] Manual phone normalization for staff ${assignee.name}: ${assignee.phone} â†’ ${sanitizedAssigneePhone}`
       );
     } else if (cleaned.length === 10) {
       // 10 digits - assume India
       sanitizedAssigneePhone = `+91${cleaned}`;
       console.log(
-        `[CRM] Manual phone normalization (10 digits) for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`
+        `[CRM] Manual phone normalization (10 digits) for staff ${assignee.name}: ${assignee.phone} â†’ ${sanitizedAssigneePhone}`
       );
     } else if (cleaned.length > 10 && cleaned.length <= 15) {
       // International number - try adding + prefix
@@ -1436,7 +1341,7 @@ async function sendStaffAssignmentNotification(
         ? cleaned
         : `+${cleaned}`;
       console.log(
-        `[CRM] Manual phone normalization (international) for staff ${assignee.name}: ${assignee.phone} → ${sanitizedAssigneePhone}`
+        `[CRM] Manual phone normalization (international) for staff ${assignee.name}: ${assignee.phone} â†’ ${sanitizedAssigneePhone}`
       );
     }
   }
@@ -1499,7 +1404,7 @@ async function sendStaffAssignmentNotification(
         };
 
         console.log(
-          `[CRM] 📤 Sending staff_lead_assigned template to ${sanitizedAssigneePhone}`
+          `[CRM] ðŸ“¤ Sending staff_lead_assigned template to ${sanitizedAssigneePhone}`
         );
         const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
           method: "POST",
@@ -1512,7 +1417,7 @@ async function sendStaffAssignmentNotification(
 
         const apiResult = await response.json();
         console.log(
-          `[CRM] 📋 Full WhatsApp API Response for ${assignee.name}:`,
+          `[CRM] ðŸ“‹ Full WhatsApp API Response for ${assignee.name}:`,
           JSON.stringify(apiResult, null, 2)
         );
 
@@ -1520,13 +1425,13 @@ async function sendStaffAssignmentNotification(
           result = apiResult;
           const messageId = apiResult.messages[0]?.id;
           console.log(
-            `[CRM] ✅ Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`
+            `[CRM] âœ… Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`
           );
 
           // Log warning if there are any issues in the response
           if (apiResult.messages[0]?.message_status) {
             console.log(
-              `[CRM] ⚠️ Message status: ${apiResult.messages[0].message_status}`
+              `[CRM] âš ï¸ Message status: ${apiResult.messages[0].message_status}`
             );
           }
         } else {
@@ -1537,15 +1442,15 @@ async function sendStaffAssignmentNotification(
             errorDetails.type === "OAuthException"
           ) {
             console.error(
-              `[CRM] 🔴 TOKEN EXPIRED: WhatsApp token has expired!`,
+              `[CRM] ðŸ”´ TOKEN EXPIRED: WhatsApp token has expired!`,
               errorDetails.message || ""
             );
             console.error(
-              `[CRM] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
+              `[CRM] âš ï¸ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
             );
           }
           console.error(
-            `[CRM] ❌ Template message failed for ${
+            `[CRM] âŒ Template message failed for ${
               assignee.name
             } (${sanitizedAssigneePhone}). Status: ${
               response.status
@@ -1587,7 +1492,7 @@ async function sendStaffAssignmentNotification(
         };
 
         console.log(
-          `[CRM] 📤 Sending staff_task_assigned template to ${assignee.name} (${sanitizedAssigneePhone})`
+          `[CRM] ðŸ“¤ Sending staff_task_assigned template to ${assignee.name} (${sanitizedAssigneePhone})`
         );
         const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
           method: "POST",
@@ -1600,7 +1505,7 @@ async function sendStaffAssignmentNotification(
 
         const apiResult = await response.json();
         console.log(
-          `[CRM] 📋 Full WhatsApp API Response for ${assignee.name}:`,
+          `[CRM] ðŸ“‹ Full WhatsApp API Response for ${assignee.name}:`,
           JSON.stringify(apiResult, null, 2)
         );
 
@@ -1608,13 +1513,13 @@ async function sendStaffAssignmentNotification(
           result = apiResult;
           const messageId = apiResult.messages[0]?.id;
           console.log(
-            `[CRM] ✅ Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`
+            `[CRM] âœ… Template message sent successfully to ${assignee.name} (${sanitizedAssigneePhone}). Message ID: ${messageId}`
           );
 
           // Log warning if there are any issues in the response
           if (apiResult.messages[0]?.message_status) {
             console.log(
-              `[CRM] ⚠️ Message status: ${apiResult.messages[0].message_status}`
+              `[CRM] âš ï¸ Message status: ${apiResult.messages[0].message_status}`
             );
           }
         } else {
@@ -1625,15 +1530,15 @@ async function sendStaffAssignmentNotification(
             errorDetails.type === "OAuthException"
           ) {
             console.error(
-              `[CRM] 🔴 TOKEN EXPIRED: WhatsApp token has expired!`,
+              `[CRM] ðŸ”´ TOKEN EXPIRED: WhatsApp token has expired!`,
               errorDetails.message || ""
             );
             console.error(
-              `[CRM] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
+              `[CRM] âš ï¸ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
             );
           }
           console.error(
-            `[CRM] ❌ Template message failed for ${
+            `[CRM] âŒ Template message failed for ${
               assignee.name
             } (${sanitizedAssigneePhone}). Status: ${
               response.status
@@ -1646,7 +1551,7 @@ async function sendStaffAssignmentNotification(
       }
     } catch (templateError) {
       console.warn(
-        `[CRM] ⚠️ Template message failed for ${assignee.name}. Trying plain text fallback:`,
+        `[CRM] âš ï¸ Template message failed for ${assignee.name}. Trying plain text fallback:`,
         templateError.message
       );
       // Fallback: Send as plain text WITHOUT URL (template should have the button)
@@ -1654,7 +1559,7 @@ async function sendStaffAssignmentNotification(
 
       if (!result) {
         console.error(
-          `[CRM] ❌ Both template and fallback failed for ${assignee.name} (${sanitizedAssigneePhone}). Original error: ${templateError.message}`
+          `[CRM] âŒ Both template and fallback failed for ${assignee.name} (${sanitizedAssigneePhone}). Original error: ${templateError.message}`
         );
       }
     }
@@ -1678,7 +1583,7 @@ async function sendStaffAssignmentNotification(
           "System"
         );
         console.log(
-          `[CRM] ✅ Successfully sent assignment notification to ${assignee.name} for lead ${lead.id}. WhatsApp Message ID: ${messageId}`
+          `[CRM] âœ… Successfully sent assignment notification to ${assignee.name} for lead ${lead.id}. WhatsApp Message ID: ${messageId}`
         );
       } else {
         // Result exists but no message ID - might be a false positive
@@ -1686,16 +1591,16 @@ async function sendStaffAssignmentNotification(
           assignee.name
         }" (${sanitizedAssigneePhone}). Response: ${JSON.stringify(result)}`;
         await logLeadActivity(lead.id, "WhatsApp Failed", errorMsg, "System");
-        console.error(`[CRM] ❌ ${errorMsg}`);
+        console.error(`[CRM] âŒ ${errorMsg}`);
       }
     } else {
       const errorMsg = `Failed to send assignment notification to staff "${assignee.name}" (${sanitizedAssigneePhone}). Template may not be approved, phone number invalid, or WhatsApp API error. Check server logs for details.`;
       await logLeadActivity(lead.id, "WhatsApp Failed", errorMsg, "System");
-      console.error(`[CRM] ❌ ${errorMsg}`);
+      console.error(`[CRM] âŒ ${errorMsg}`);
     }
   } else {
     console.log(
-      `[CRM] ⚠️ Staff alert not sent for lead ${lead.id}: Invalid phone number for staff ${assignee.name}.`
+      `[CRM] âš ï¸ Staff alert not sent for lead ${lead.id}: Invalid phone number for staff ${assignee.name}.`
     );
     await logLeadActivity(
       lead.id,
@@ -2046,1614 +1951,6 @@ app.get("/api/log-customer-call", async (req, res) => {
   }
 });
 
-// --- AUTOMATIC LEAD ASSIGNMENT & ITINERARY GENERATION ---
-let branchStaffIndexes = {}; // For round-robin fallback within branches
-
-const getSeason = (dateString) => {
-  const date = new Date(dateString);
-  const month = date.getMonth();
-  if (month >= 2 && month <= 4) return "Spring";
-  if (month >= 5 && month <= 7) return "Summer";
-  if (month >= 8 && month <= 10) return "Autumn";
-  return "Winter";
-};
-
-const sendWelcomeEmail = async (lead, customer, staff) => {
-  if (!customer.email) {
-    console.log(
-      `Customer ${customer.id} has no email. Skipping welcome email for lead ${lead.id}.`
-    );
-    return;
-  }
-
-  const { data: branch } = await supabase
-    .from("branches")
-    .select("welcome_email_template")
-    .eq("id", lead.branch_ids[0])
-    .single();
-
-  const DEFAULT_WELCOME_TEMPLATE = `
-        <div style="font-family: Arial, sans-serif; background-color: #e2e8f0; padding: 40px;">
-            <div style="max-width: 600px; margin: auto;">
-                <div style="background-color: #1f2937; color: white; padding: 30px; border-radius: 12px 12px 0 0;">
-                    <h1 style="font-size: 28px; font-weight: bold; margin: 0;">GT HOLIDAYS</h1>
-                    <p style="font-size: 14px; margin: 4px 0 0; color: #cbd5e1;">Travel World Class</p>
-                </div>
-                <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 12px 12px;">
-                    <p style="font-size: 20px; margin: 0;">Vanakkam {Customer Name}!</p>
-                    <p style="font-size: 16px; color: #4b5563; margin-top: 4px;">Thank you for your enquiry. Your trip is in trusted hands.</p>
-                    
-                    <div style="margin-top: 24px; border: 1px solid #e5e7eb; border-radius: 8px;">
-                        <div style="padding: 16px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-                            <h2 style="font-size: 18px; font-weight: bold; margin: 0;">Summary</h2>
-                        </div>
-                        <div style="padding: 16px;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                                <tbody>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">Agent:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Agent Name}, {Agent Phone}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">MTS ID:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{MTS ID}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">Name:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Customer Full Name}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">Trip To:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Trip Destination}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">No. of Nights:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Trip Duration}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">Start Date:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Trip Start Date}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">End Date:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Trip End Date}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">Total Adults:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Total Adults}</td></tr>
-                                    <tr style="border-bottom: 1px solid #f3f4f6;"><td style="padding: 8px 0; color: #6b7280;">Total Kids:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Total Kids}</td></tr>
-                                    <tr><td style="padding: 8px 0; color: #6b7280;">Kid’s Age:</td><td style="padding: 8px 0; font-weight: 600; color: #111827; text-align: right;">{Kid Ages}</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div style="margin-top: 24px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-                        <h2 style="font-size: 18px; font-weight: bold; margin: 0 0 8px 0;">Next Steps</h2>
-                        <p style="font-size: 14px; color: #4b5563; line-height: 1.5;">Your dedicated travel agent, <strong>{Agent Name}</strong>, will get in touch with you shortly with a detailed itinerary and quotation. In the meantime, feel free to reach out to them with any questions.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-  const template = branch?.welcome_email_template || DEFAULT_WELCOME_TEMPLATE;
-
-  const getEndDate = (startDateStr, durationStr) => {
-    if (!durationStr) return "Not specified";
-    const nightsMatch = durationStr.match(/(\d+)\s*N/i);
-    if (!nightsMatch) return "Not specified";
-    const nights = parseInt(nightsMatch[1], 10);
-    const startDate = new Date(startDateStr);
-    const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + nights);
-    return endDate.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
-
-  const startDate = new Date(lead.travel_date);
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const yy = String(now.getFullYear()).slice(-2);
-
-  const replacements = {
-    "{Customer Name}": customer.first_name,
-    "{Customer Full Name}": `${customer.first_name} ${customer.last_name}`,
-    "{Agent Name}": staff.name,
-    "{Agent Phone}": staff.phone,
-    "{Agent Email}": staff.email,
-    "{MTS ID}": `${lead.id}${mm}${yy}`,
-    "{Trip Destination}": lead.destination,
-    "{Trip Duration}": lead.duration || "N/A",
-    "{Trip Start Date}": startDate.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }),
-    "{Trip End Date}": getEndDate(lead.travel_date, lead.duration),
-    "{Total Adults}": lead.requirements.adults,
-    "{Total Kids}": lead.requirements.children,
-    "{Kid Ages}": lead.requirements.child_ages?.join(", ") || "N/A",
-  };
-
-  const htmlBody = template.replace(/{[A-Za-z\s]+}/g, (matched) => {
-    return replacements[matched] !== undefined
-      ? replacements[matched]
-      : matched;
-  });
-
-  const mailOptions = {
-    from: `"Madura Travel Service" <${process.env.SMTP_USER}>`,
-    to: customer.email,
-    cc: staff.email,
-    subject: `Your Dream Vacay with Madura Travel! Trip to ${lead.destination}`,
-    html: htmlBody,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Welcome email sent for lead ${lead.id} to ${customer.email}.`);
-  } catch (error) {
-    console.error(`Failed to send welcome email for lead ${lead.id}:`, error);
-  }
-};
-
-// --- AUTOMATED LEAD ASSIGNMENT AND PROCESSING ---
-// This function processes leads in batches and handles:
-// - Bulk lead assignments (50-60 leads at once)
-// - Rate-limited WhatsApp notifications (prevents API overload)
-// - Concurrent processing with delays between operations
-// - Staff notifications for both primary and secondary assignees
-//
-// Scalability features:
-// - Rate limiting: 2 seconds minimum between messages to same recipient
-// - Bulk delays: 500ms between different recipients in bulk operations
-// - Sequential processing: Leads processed one by one to prevent overwhelming system
-// - All notifications are sent, even if 10 staff get 10 leads each (100 notifications)
-// OPTIMIZED: Event-driven assignment - processes specific lead immediately or batch of unassigned leads
-const assignLeadsAndGenerateItineraries = async (specificLeadId = null) => {
-  try {
-    let leadsToAssign = [];
-
-    if (specificLeadId) {
-      // EVENT-DRIVEN: Process specific lead immediately (triggered by realtime listener)
-      console.log(
-        `[Assignment] Event-driven: Processing lead ${specificLeadId}...`
-      );
-
-      // Quick check: Is this lead already assigned?
-      const { data: existingAssignments, error: checkError } = await supabase
-        .from("lead_assignees")
-        .select("lead_id")
-        .eq("lead_id", specificLeadId)
-        .limit(1);
-
-      if (checkError) throw checkError;
-
-      if (existingAssignments && existingAssignments.length > 0) {
-        console.log(
-          `[Assignment] Lead ${specificLeadId} already assigned, skipping.`
-        );
-        return;
-      }
-
-      // Fetch the specific lead (only if unassigned)
-      const { data: leadData, error: leadError } = await supabase
-        .from("leads")
-        .select(
-          "id, status, destination, requirements, customer_id, branch_ids, created_at, last_updated, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name, email, phone, branch_id))"
-        )
-        .eq("id", specificLeadId)
-        .eq("status", "Enquiry")
-        .single();
-
-      if (leadError) throw leadError;
-
-      if (!leadData) {
-        console.log(
-          `[Assignment] Lead ${specificLeadId} not found or not in Enquiry status.`
-        );
-        return;
-      }
-
-      leadsToAssign = [leadData];
-      console.log(
-        `[Assignment] Processing lead ${specificLeadId} for assignment.`
-      );
-    } else {
-      // BATCH MODE: Check for unassigned leads (fallback, rarely used now)
-      console.log("[Assignment] Batch mode: Checking for unassigned leads...");
-
-      // Only check leads created more than 30 seconds ago (reduced from 1 minute for faster assignment)
-      const thirtySecondsAgo = new Date(Date.now() - 30000).toISOString();
-      const { data: potentialLeads, error: potentialError } = await supabase
-        .from("leads")
-        .select("id")
-        .eq("status", "Enquiry")
-        .lt("created_at", thirtySecondsAgo);
-
-      if (potentialError) throw potentialError;
-      if (!potentialLeads || potentialLeads.length === 0) {
-        console.log("[Assignment] No leads found matching criteria.");
-        return;
-      }
-
-      const leadIds = potentialLeads.map((l) => l.id);
-
-      // Find which of these leads already have entries in the junction table
-      const { data: assignedLeads, error: assignedError } = await supabase
-        .from("lead_assignees")
-        .select("lead_id")
-        .in("lead_id", leadIds);
-
-      if (assignedError) throw assignedError;
-
-      const assignedLeadIds = new Set(assignedLeads.map((a) => a.lead_id));
-      const unassignedLeadIds = leadIds.filter(
-        (id) => !assignedLeadIds.has(id)
-      );
-
-      if (unassignedLeadIds.length === 0) {
-        console.log("[Assignment] No unassigned leads to process.");
-        return;
-      }
-
-      // Fetch the full data for the unassigned leads
-      const { data: fetchedLeads, error: leadsError } = await supabase
-        .from("leads")
-        .select(
-          "id, status, destination, requirements, customer_id, branch_ids, created_at, last_updated, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name, email, phone, branch_id))"
-        )
-        .in("id", unassignedLeadIds);
-
-      if (leadsError) throw leadsError;
-
-      if (!fetchedLeads || fetchedLeads.length === 0) {
-        console.log("[Assignment] No leads to assign after fetch.");
-        return;
-      }
-
-      leadsToAssign = fetchedLeads;
-      console.log(
-        `[Assignment] Found ${leadsToAssign.length} unassigned leads to process.`
-      );
-    }
-
-    // 5. Get all active, non-admin, non-AI staff
-    // OPTIMIZATION: Select only necessary columns to reduce Disk IO
-    const { data: allStaff, error: staffError } = await supabase
-      .from("staff")
-      .select(
-        "id, name, email, phone, branch_id, status, role_id, leads_attended, destinations, services"
-      )
-      .eq("status", "Active")
-      .neq("role_id", 1) // Exclude Super Admins
-      .neq("name", "AI Assistant") // Exclude AI Assistant
-      .order("id", { ascending: true });
-
-    if (staffError) throw staffError;
-    if (!allStaff || allStaff.length === 0) {
-      console.log("No active, non-admin staff available for assignment.");
-      return;
-    }
-
-    // Group staff by branch for easier lookup
-    const staffByBranch = allStaff.reduce((acc, staff) => {
-      const branchId = staff.branch_id;
-      if (!acc[branchId]) acc[branchId] = [];
-      acc[branchId].push(staff);
-      return acc;
-    }, {});
-
-    Object.keys(staffByBranch).forEach((branchId) => {
-      if (branchStaffIndexes[branchId] === undefined) {
-        branchStaffIndexes[branchId] = -1;
-      }
-    });
-
-    for (const rawLead of leadsToAssign) {
-      // Normalize lead object
-      const lead = {
-        ...rawLead,
-        assigned_to: (rawLead.all_assignees || [])
-          .map((a) => a.staff)
-          .filter(Boolean),
-      };
-
-      let primaryAssignee = null;
-      let slackThreadTs = null;
-
-      try {
-        // ----- CRITICAL PATH: STAFF ASSIGNMENT -----
-        await supabase
-          .from("leads")
-          .update({ current_staff_name: "Assigning..." })
-          .eq("id", lead.id);
-
-        const customerData = lead.customer;
-        if (!customerData) {
-          console.warn(
-            `Could not find customer with ID ${lead.customer_id} for lead ${lead.id}. Skipping notifications.`
-          );
-        }
-
-        const leadBranchId = 1; // HARDCODE to branch 1 as requested
-        const branchStaffPool = staffByBranch[leadBranchId] || [];
-
-        if (branchStaffPool.length === 0) {
-          console.log(
-            `No staff available in branch ${leadBranchId} for lead ${lead.id}`
-          );
-          continue; // Skip to next lead
-        }
-
-        const leadServices = lead.services || [];
-        const leadDestination = (lead.destination || "").toLowerCase().trim();
-        const secondaryAssignees = new Set();
-
-        // 1. Create the base eligible pool by filtering out anyone excluded.
-        const eligiblePool = branchStaffPool.filter((staff) => {
-          if (staff.role_id === 2) return true; // Managers are always eligible as a fallback
-
-          const excludedServices = staff.excluded_services || [];
-          if (leadServices.some((ls) => excludedServices.includes(ls))) {
-            return false;
-          }
-
-          const excludedDestinations = (staff.excluded_destinations || "")
-            .toLowerCase()
-            .split(",")
-            .map((d) => d.trim())
-            .filter(Boolean);
-          if (
-            excludedDestinations.length > 0 &&
-            excludedDestinations.some((ed) => leadDestination.includes(ed))
-          ) {
-            return false;
-          }
-
-          return true;
-        });
-
-        if (eligiblePool.length === 0) {
-          console.error(
-            `No eligible staff (after exclusions) found for lead ${lead.id} in branch ${leadBranchId}.`
-          );
-          await supabase
-            .from("leads")
-            .update({ current_staff_name: null })
-            .eq("id", lead.id);
-          continue;
-        }
-
-        // 2. Try to find a specialist for the primary service from the eligible pool
-        const primaryService = leadServices[0];
-        let assignmentPool = [];
-
-        if (primaryService) {
-          // A staff is a specialist if they explicitly list the service, or if they are a generalist (no services listed).
-          assignmentPool = eligiblePool.filter((staff) => {
-            const handledServices = staff.services || [];
-            return (
-              handledServices.length === 0 ||
-              handledServices.includes(primaryService)
-            );
-          });
-        }
-
-        // 3. If no specialists found, use the entire eligible pool as the fallback.
-        if (assignmentPool.length === 0) {
-          console.log(
-            `No specialists for '${primaryService}' found for lead ${lead.id}. Falling back to all eligible staff in branch.`
-          );
-          assignmentPool = eligiblePool;
-        }
-
-        // 4. Perform round-robin assignment on the final pool.
-        branchStaffIndexes[leadBranchId] =
-          (branchStaffIndexes[leadBranchId] + 1) % assignmentPool.length;
-        primaryAssignee = assignmentPool[branchStaffIndexes[leadBranchId]];
-
-        if (!primaryAssignee) {
-          console.error(
-            `Could not find ANY eligible staff or manager to assign lead ${lead.id} in branch ${leadBranchId}.`
-          );
-          await supabase
-            .from("leads")
-            .update({ current_staff_name: null })
-            .eq("id", lead.id);
-          continue;
-        }
-
-        // 5. Find secondary assignees for other services
-        const otherServices = leadServices.filter(
-          (s) => s !== lead.services[0]
-        );
-        for (const service of otherServices) {
-          // Find a different, eligible staff member who specializes in this service
-          const specialist = allStaff.find((s) => {
-            if (s.id === primaryAssignee.id) return false; // Can't be the primary
-            if (!s.services?.includes(service)) return false; // Must handle the service
-
-            // Check exclusions for secondary assignee
-            const excludedServices = s.excluded_services || [];
-            if (excludedServices.includes(service)) return false;
-
-            const excludedDestinations = (s.excluded_destinations || "")
-              .toLowerCase()
-              .split(",")
-              .map((d) => d.trim())
-              .filter(Boolean);
-            if (excludedDestinations.some((ed) => leadDestination.includes(ed)))
-              return false;
-
-            return true;
-          });
-
-          if (specialist) {
-            secondaryAssignees.add(specialist);
-          }
-        }
-
-        const finalAssignees = [
-          primaryAssignee,
-          ...Array.from(secondaryAssignees),
-        ];
-        const assignments = finalAssignees.map((staff) => ({
-          lead_id: lead.id,
-          staff_id: staff.id,
-        }));
-        const { error: assignError } = await supabase
-          .from("lead_assignees")
-          .insert(assignments);
-        if (assignError) throw assignError;
-
-        // Send Welcome messages and add activity
-        // Note: Summary and staff notifications are handled by the realtime listener to prevent duplicates
-        // The realtime listener will fire for these INSERTs and send notifications
-        if (customerData) {
-          // Small delay before sending staff notifications to prevent overwhelming WhatsApp API
-          await new Promise((resolve) =>
-            setTimeout(resolve, BULK_MESSAGE_DELAY)
-          );
-
-          // FALLBACK: Send MTS summary directly if realtime listener doesn't fire
-          // Check if summary was already sent (prevent duplicates)
-          const recentSummarySent = (lead.activity || []).some(
-            (act) =>
-              (act.type === "Summary Sent" || act.type === "WhatsApp Sent") &&
-              (act.description?.includes("Summary sent") ||
-                act.description?.includes("template")) &&
-              new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
-          );
-
-          if (!recentSummarySent) {
-            // Fetch fresh lead data with assignees to ensure we have latest activity
-            const { data: freshLead } = await supabase
-              .from("leads")
-              .select("*, all_assignees:lead_assignees(staff(*))")
-              .eq("id", lead.id)
-              .single();
-
-            if (freshLead) {
-              // Double-check summary wasn't sent in the meantime
-              const freshSummarySent = (freshLead.activity || []).some(
-                (act) =>
-                  (act.type === "Summary Sent" ||
-                    act.type === "WhatsApp Sent") &&
-                  (act.description?.includes("Summary sent") ||
-                    act.description?.includes("template")) &&
-                  new Date(act.timestamp) > new Date(Date.now() - 60000)
-              );
-
-              if (!freshSummarySent) {
-                // DISABLED: MTS summary auto-sending
-                // console.log(
-                //   `[Task] Sending MTS summary to customer "${customerData.first_name} ${customerData.last_name}" (${customerData.phone}) for lead ${lead.id} (fallback after assignment)`
-                // );
-                // try {
-                //   await sendWelcomeWhatsapp(
-                //     freshLead,
-                //     customerData,
-                //     primaryAssignee
-                //   );
-                //   console.log(
-                //     `[Task] ✅ MTS summary sent successfully to customer for lead ${lead.id}`
-                //   );
-                // } catch (summaryError) {
-                //   console.error(
-                //     `[Task] ❌ Error sending MTS summary to customer for lead ${lead.id}:`,
-                //     summaryError.message
-                //   );
-                // }
-                console.log(
-                  `[Task] MTS summary auto-sending is disabled for lead ${lead.id}`
-                );
-              } else {
-                console.log(
-                  `[Task] Summary already sent (detected in fresh lead data) for lead ${lead.id}. Skipping.`
-                );
-              }
-            }
-          } else {
-            console.log(
-              `[Task] Summary already sent recently for lead ${lead.id}. Skipping duplicate.`
-            );
-          }
-
-          // Send Staff Notification to primary assignee (realtime listener will also try, but has duplicate prevention)
-          // Summary will be sent by the realtime listener when primary staff assignment is detected
-          await sendStaffAssignmentNotification(
-            lead,
-            customerData,
-            primaryAssignee,
-            "primary"
-          );
-
-          // Send notifications to secondary assignees with delays between each
-          for (const secondaryStaff of Array.from(secondaryAssignees)) {
-            // Find the specific service this secondary staff is handling
-            const leadServicesSet = new Set(leadServices);
-            const primaryServicesSet = new Set(primaryAssignee.services || []);
-            const secondaryServicesSet = new Set(secondaryStaff.services || []);
-
-            let specificService = null;
-            // Find a service the secondary staff handles, that the lead requires, and the primary staff does NOT handle
-            for (const service of secondaryServicesSet) {
-              if (
-                leadServicesSet.has(service) &&
-                !primaryServicesSet.has(service)
-              ) {
-                specificService = service;
-                break;
-              }
-            }
-            // Fallback: just find any service they handle that's on the lead
-            if (!specificService) {
-              specificService =
-                (secondaryStaff.services || []).find((s) =>
-                  leadServicesSet.has(s)
-                ) || "a task for this lead";
-            }
-
-            // Delay between secondary staff notifications
-            await new Promise((resolve) =>
-              setTimeout(resolve, BULK_MESSAGE_DELAY)
-            );
-
-            await sendStaffAssignmentNotification(
-              lead,
-              customerData,
-              secondaryStaff,
-              "secondary",
-              primaryAssignee.name,
-              specificService
-            );
-          }
-        }
-
-        // Small delay between processing different leads to prevent API overload
-        await new Promise((resolve) => setTimeout(resolve, BULK_MESSAGE_DELAY));
-
-        // REMOVED: Automatic status change from Enquiry to Processing when staff is auto-assigned
-        // Status should be changed manually by the user, not automatically
-        await supabase
-          .from("leads")
-          .update({
-            // status: "Processing", // REMOVED - don't auto-change status
-            last_updated: new Date().toISOString(),
-            // slack_thread_ts: slackThreadTs, // Slack disabled
-            activity: lead.activity,
-            needs_welcome_pdf_generation: true, // Set flag for client-side PDF generation
-          })
-          .eq("id", lead.id);
-        console.log(
-          `Assigned lead ${lead.id} to Primary: ${primaryAssignee.name}`
-        );
-
-        // ----- START CONCURRENT TASKS -----
-        const concurrentTasks = [];
-
-        // Task 1: Auto-assign supplier (runs in parallel)
-        if (lead.services.includes("Tour Package")) {
-          concurrentTasks.push(
-            (async () => {
-              try {
-                console.log(
-                  `[Task] Attempting supplier assignment for lead ${lead.id}.`
-                );
-                await supabase
-                  .from("leads")
-                  .update({ current_staff_name: "Assigning-Supplier..." })
-                  .eq("id", lead.id);
-
-                const { data: allSuppliers, error: supplierError } =
-                  await supabase
-                    .from("suppliers")
-                    .select("*")
-                    .eq("status", "Active");
-                if (supplierError) throw supplierError;
-
-                if (allSuppliers?.length > 0) {
-                  const leadDestination = (lead.destination || "")
-                    .toLowerCase()
-                    .trim();
-                  const destinationMatches = allSuppliers.filter((s) =>
-                    (s.destinations || "")
-                      .toLowerCase()
-                      .includes(leadDestination)
-                  );
-                  const verifiedMatches = destinationMatches.filter(
-                    (s) => s.is_verified
-                  );
-
-                  let suppliersToAssign = [];
-                  if (verifiedMatches.length > 0) {
-                    suppliersToAssign = verifiedMatches;
-                  } else {
-                    const unverifiedMatches = destinationMatches.filter(
-                      (s) => !s.is_verified
-                    );
-                    suppliersToAssign = unverifiedMatches;
-                  }
-
-                  if (suppliersToAssign.length > 0) {
-                    const supplierAssignments = suppliersToAssign.map((s) => ({
-                      lead_id: lead.id,
-                      supplier_id: s.id,
-                    }));
-                    const { error: supplierAssignError } = await supabase
-                      .from("lead_suppliers")
-                      .insert(supplierAssignments);
-                    if (supplierAssignError) throw supplierAssignError;
-
-                    const supplierNames = suppliersToAssign
-                      .map((s) => `"${s.company_name}"`)
-                      .join(", ");
-                    const supplierMessage = `Supplier(s) ${supplierNames} automatically assigned by system.`;
-
-                    const supplierLog = {
-                      id: Date.now() + 1,
-                      type: "Supplier Assigned",
-                      description: supplierMessage,
-                      user: "System",
-                      timestamp: new Date().toISOString(),
-                    };
-                    const { data: currentLeadData } = await supabase
-                      .from("leads")
-                      .select("activity")
-                      .eq("id", lead.id)
-                      .single();
-                    const updatedActivity = [
-                      supplierLog,
-                      ...(currentLeadData?.activity || []),
-                    ];
-                    await supabase
-                      .from("leads")
-                      .update({
-                        activity: updatedActivity,
-                        last_updated: new Date().toISOString(),
-                      })
-                      .eq("id", lead.id);
-                    console.log(
-                      `[Task] Successfully assigned ${suppliersToAssign.length} supplier(s) to lead ${lead.id}: ${supplierNames}.`
-                    );
-                  } else {
-                    console.log(
-                      `[Task] No matching supplier found for lead ${lead.id}.`
-                    );
-                  }
-                }
-              } catch (error) {
-                console.error(
-                  `[Task] Error during supplier assignment for lead ${lead.id}:`,
-                  error.message
-                );
-              }
-            })()
-          );
-        }
-
-        // Task 2: Auto-generate itinerary v1
-        // ONLY generate itinerary for Tour Package service
-        // Do NOT generate for Passport, Forex, Transport, Visa, Air Ticket, or Hotel-only leads
-        const hasTourPackage =
-          lead.services && lead.services.includes("Tour Package");
-        const nonTourServices = [
-          "Passport",
-          "Forex",
-          "Transport",
-          "Visa",
-          "Air Ticket",
-          "Hotel",
-        ];
-
-        // Check if lead has ONLY non-tour services (no Tour Package)
-        const hasOnlyNonTourServices =
-          lead.services &&
-          lead.services.length > 0 &&
-          lead.services.every((s) => nonTourServices.includes(s));
-
-        // Itinerary auto-generation disabled for academy/lead-management mode
-        if (
-          false &&
-          hasTourPackage &&
-          !hasOnlyNonTourServices &&
-          lead.status === "Processing"
-        ) {
-          console.log(
-            `[Task] Tour Package detected for lead ${
-              lead.id
-            }. Services: [${lead.services.join(", ")}]. Status: ${
-              lead.status
-            }. Generating itinerary.`
-          );
-          concurrentTasks.push(
-            (async () => {
-              try {
-                console.log(
-                  `[Task] Starting AI itinerary v1 generation for lead ${lead.id}...`
-                );
-
-                const { data: fullLeadData, error: fullLeadError } =
-                  await supabase
-                    .from("leads")
-                    .select("*")
-                    .eq("id", lead.id)
-                    .single();
-                if (fullLeadError)
-                  throw new Error(
-                    `Failed to fetch full lead details: ${fullLeadError.message}`
-                  );
-
-                const notesContent =
-                  fullLeadData.notes && fullLeadData.notes.length > 0
-                    ? fullLeadData.notes
-                        .map(
-                          (note) => `- ${note.text.replace(/<[^>]*>?/gm, "")}`
-                        )
-                        .join("\n")
-                    : "No specific notes from customer.";
-                const season = getSeason(fullLeadData.travel_date);
-
-                // Determine if visa is needed (international tour)
-                const destinationLower = (
-                  fullLeadData.destination || ""
-                ).toLowerCase();
-                const startingPointLower = (
-                  fullLeadData.starting_point || ""
-                ).toLowerCase();
-                const isIndianDestination = indianPlaces.some((place) =>
-                  destinationLower.includes(place.toLowerCase())
-                );
-                const isIndianStartingPoint = indianPlaces.some((place) =>
-                  startingPointLower.includes(place.toLowerCase())
-                );
-                const isInternational =
-                  !isIndianDestination || !isIndianStartingPoint;
-                const needsVisa = isInternational;
-
-                // Get branch for default Terms & Conditions and Cancellation Policy
-                const branchId = fullLeadData.branch_ids?.[0];
-                let branchTerms = "";
-                let branchCancellationPolicy = "";
-                if (branchId) {
-                  const { data: branchData } = await supabase
-                    .from("branches")
-                    .select("terms_and_conditions(*), cancellation_policy(*)")
-                    .eq("id", branchId)
-                    .single();
-                  if (branchData?.terms_and_conditions?.length > 0) {
-                    branchTerms =
-                      branchData.terms_and_conditions.find((t) => t.is_default)
-                        ?.content ||
-                      branchData.terms_and_conditions[0].content ||
-                      "";
-                  }
-                  if (branchData?.cancellation_policy?.length > 0) {
-                    branchCancellationPolicy =
-                      branchData.cancellation_policy.find((t) => t.is_default)
-                        ?.content ||
-                      branchData.cancellation_policy[0].content ||
-                      "";
-                  }
-                }
-
-                const hotelPreference =
-                  fullLeadData.requirements?.hotelPreference || "No Preference";
-                const stayPreference =
-                  fullLeadData.requirements?.stayPreference || "No Preference";
-                const hasVisaService =
-                  fullLeadData.services &&
-                  fullLeadData.services.includes("Visa");
-                // Always generate visa - based on destination as an Indian traveler
-                const shouldGenerateVisa = true;
-
-                const contextPrompt = `
-                  Act as an expert travel agent for Madura Travel. Create a structured itinerary based on the following lead.
-
-                  **Lead Details:**
-                  - Destination: ${fullLeadData.destination}
-                  - Starting Point: ${
-                    fullLeadData.starting_point || "Not specified"
-                  }
-                  - Duration: ${fullLeadData.duration || "Not specified"}
-                  - Travel Date: ${fullLeadData.travel_date} (Season: ${season})
-                  - Return Date: ${fullLeadData.return_date || "Not specified"}
-                  - Tour Type: ${fullLeadData.tour_type || "General"}
-                  - Passengers: ${fullLeadData.requirements.adults} Adults, ${
-                  fullLeadData.requirements.children
-                } Children
-                  - Hotel Preference: ${hotelPreference}
-                  - Stay Preference: ${stayPreference}
-                  - Is International: ${isInternational}
-                  - Traveler Nationality: Indian
-
-                  **Customer Notes & Requirements:**
-                  ${notesContent}
-
-                  **CRITICAL REQUIREMENTS:**
-                  1. FLIGHTS: Use Google Search to find the CHEAPEST available flights (even with stops). ALWAYS generate:
-                     - At least one 'onward' flight (from starting_point to destination on travel_date)
-                     - A corresponding 'return' flight (from destination back to starting_point on return_date or calculated end_date)
-                     - 'intercity' flights if the itinerary involves multiple cities
-                     - Include proper dates (YYYY-MM-DD), times (HH:MM 24-hour), duration (ISO 8601 format like PT3H30M), and flight numbers
-                     - Choose the CHEAPEST option available, even if it has stops
-                     - Get REAL prices from MakeMyTrip, Booking.com, Expedia, or Google Flights
-                  
-                  2. HOTELS: Use Google Search to find GOOD hotels based on preferences. ALWAYS generate:
-                     - At least ONE hotel for the trip duration
-                     - Hotels matching hotel preference (${hotelPreference}) and stay preference (${stayPreference})
-                     - Include hotel name, city, pricing type, nights, rooms, rate per night, check-in/check-out dates, and room type
-                     - Get REAL prices per night (in INR) when possible
-                     - Suggest hotels with reasons (e.g., "best for sunrise", "nearby to attractions")
-                  
-                  3. VISA: ALWAYS generate visa information for Indian travelers to ${
-                    fullLeadData.destination
-                  }. Use Google Search to find visa information:
-                     - Search for "Indian passport visa requirements for ${
-                       fullLeadData.destination
-                     }"
-                     - Type (e.g., Tourist Visa, E-Visa, On Arrival, etc.), price (per person in INR), duration, validity period, length of stay
-                     - Documents required and requirements
-                     - Processing time and important notes
-                     - If visa is not required (e.g., for domestic destinations), still generate visa object with type "Not Required" and note explaining why
-                  
-                  4. INSURANCE: MUST be included in inclusions and insurance object
-                  
-                  5. DO NOT generate Sightseeing or Transfers - these should be added manually later
-
-                  **Your Task:**
-                  Generate a response in JSON format. The day-wise plan descriptions must be in clean HTML format (using <p> and <ul><li> tags). Be creative and logical.
-                `;
-
-                // Use full schema with flights, hotels, visa, insurance, important_notes
-                const fullItinerarySchema = {
-                  type: Type.OBJECT,
-                  properties: {
-                    creative_title: {
-                      type: Type.STRING,
-                      description:
-                        "A creative, marketable title for the tour package.",
-                    },
-                    duration: {
-                      type: Type.STRING,
-                      description:
-                        "The total duration of the trip, e.g., '7 Days / 6 Nights'.",
-                    },
-                    overview: {
-                      type: Type.STRING,
-                      description:
-                        "A brief, engaging overview of the trip (2-3 sentences).",
-                    },
-                    day_wise_plan: {
-                      type: Type.ARRAY,
-                      description: "A detailed day-by-day plan.",
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          day: {
-                            type: Type.INTEGER,
-                            description: "The day number, starting from 1.",
-                          },
-                          title: {
-                            type: Type.STRING,
-                            description:
-                              "A short, catchy title for the day's activities. MUST be in the format 'Day X – [Title]' (e.g., 'Day 1 – Arrival & Negombo Retreat', 'Day 2 – Exploring Colombo'). Always include the day number and a descriptive title.",
-                          },
-                          description: {
-                            type: Type.STRING,
-                            description:
-                              "A detailed description of the day's events in well-formatted HTML. Structure:\n" +
-                              "- DO NOT include date (date is shown separately) - NEVER use 📅 emoji\n" +
-                              "- Use ONLY minimal emojis: ✨ for closing statement (optional), NO other emojis\n" +
-                              "- Format: '<h4>[Section Title in Bold]</h4><p>[1-2 sentences max]</p>'\n" +
-                              "- Section titles MUST be in bold using h4 tags: 'Morning Exploration', 'Afternoon Journey', 'Evening at Leisure', 'Dining', 'Overnight'\n" +
-                              "- Common sections: 'Arrival & Welcome', 'Morning Exploration', 'Afternoon Journey', 'Evening at Leisure', 'Dining', 'Overnight'\n" +
-                              "- For Dining: List meals included briefly (e.g., 'Breakfast and Dinner at the hotel')\n" +
-                              "- For Overnight: List the city/location name only\n" +
-                              "- End with closing: '<p>✨ [Very brief closing - one sentence only]</p>'\n" +
-                              "- Be professional and concise",
-                          },
-                        },
-                        required: ["day", "title", "description"],
-                      },
-                    },
-                    inclusions: {
-                      type: Type.ARRAY,
-                      description:
-                        "A detailed and comprehensive list of items included in the package. MUST be specific and detailed. Examples: '07 Nights hotel accommodation (DBL, TPL sharing basis)', 'Private air-conditioned transfers', 'English speaking tour guide', 'Entrance fees to [attractions]', 'Meals as indicated: B = Breakfast, L = Lunch, D = Dinner', '2 bottles of Mineral water per person per day on vehicle'. Include Flights, Hotels with details, Visa, Insurance with coverage details. Be specific about quantities, types, and details so customers know exactly what they're paying for.",
-                      items: { type: Type.STRING },
-                    },
-                    exclusions: {
-                      type: Type.ARRAY,
-                      description:
-                        "A detailed and comprehensive list of items excluded from the package. MUST be specific and detailed. Examples: 'International Flight fares', 'Visa service', 'Early Check in and late check out', 'Any expense on personal nature', 'Drinks during meals', 'Tips, portages and Gratitude', 'Video and camera permits', 'Beverage', 'Other services unspecified in the list', 'Compulsory tipping for tour guide and driver'. Be comprehensive and specific so customers understand what is NOT included.",
-                      items: { type: Type.STRING },
-                    },
-                    flights: {
-                      type: Type.ARRAY,
-                      description:
-                        "Flight details with CHEAPEST prices from web search. ALWAYS generate onward and return flights.",
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          direction: {
-                            type: Type.STRING,
-                            description:
-                              "One of: 'onward', 'return', 'intercity'",
-                          },
-                          airline: {
-                            type: Type.STRING,
-                            description: "Airline name",
-                          },
-                          flight_number: {
-                            type: Type.STRING,
-                            description: "Flight number",
-                          },
-                          from: {
-                            type: Type.STRING,
-                            description: "Origin airport code",
-                          },
-                          to: {
-                            type: Type.STRING,
-                            description: "Destination airport code",
-                          },
-                          departure_date: {
-                            type: Type.STRING,
-                            description: "Departure date in YYYY-MM-DD format",
-                          },
-                          departure_time: {
-                            type: Type.STRING,
-                            description:
-                              "Departure time in HH:MM format (24-hour)",
-                          },
-                          arrival_date: {
-                            type: Type.STRING,
-                            description: "Arrival date in YYYY-MM-DD format",
-                          },
-                          arrival_time: {
-                            type: Type.STRING,
-                            description:
-                              "Arrival time in HH:MM format (24-hour)",
-                          },
-                          duration: {
-                            type: Type.STRING,
-                            description:
-                              "Flight duration in ISO 8601 format (e.g., 'PT3H30M')",
-                          },
-                          stops: {
-                            type: Type.STRING,
-                            description:
-                              "Number of stops (e.g., '0', '1', '2')",
-                          },
-                          price: {
-                            type: Type.NUMBER,
-                            description: "CHEAPEST price per person in INR",
-                          },
-                          source: {
-                            type: Type.STRING,
-                            description: "Source website",
-                          },
-                        },
-                        required: [
-                          "direction",
-                          "airline",
-                          "from",
-                          "to",
-                          "departure_date",
-                          "departure_time",
-                          "arrival_date",
-                          "arrival_time",
-                          "duration",
-                          "price",
-                        ],
-                      },
-                    },
-                    hotels: {
-                      type: Type.ARRAY,
-                      description:
-                        "Hotel details. ALWAYS generate at least ONE hotel matching preferences.",
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          name: {
-                            type: Type.STRING,
-                            description: "Hotel name",
-                          },
-                          city: { type: Type.STRING, description: "City name" },
-                          pricing_type: {
-                            type: Type.STRING,
-                            description:
-                              "One of: 'Per Adult', 'Per Adult (TWIN / DOUBLE SHARING)', etc.",
-                          },
-                          nights: {
-                            type: Type.INTEGER,
-                            description: "Number of nights",
-                          },
-                          rooms: {
-                            type: Type.INTEGER,
-                            description: "Number of rooms",
-                          },
-                          rate_per_night: {
-                            type: Type.NUMBER,
-                            description: "Price per night in INR",
-                          },
-                          check_in_date: {
-                            type: Type.STRING,
-                            description: "Check-in date (YYYY-MM-DD)",
-                          },
-                          check_out_date: {
-                            type: Type.STRING,
-                            description: "Check-out date (YYYY-MM-DD)",
-                          },
-                          room_type: {
-                            type: Type.STRING,
-                            description: "Room type",
-                          },
-                        },
-                        required: [
-                          "name",
-                          "city",
-                          "pricing_type",
-                          "nights",
-                          "rooms",
-                          "rate_per_night",
-                          "check_in_date",
-                          "check_out_date",
-                          "room_type",
-                        ],
-                      },
-                    },
-                    visa: {
-                      type: Type.OBJECT,
-                      description:
-                        "Visa information for Indian travelers to the destination. ALWAYS generate this. Use Google Search to find visa requirements for Indian passport holders. Search for 'Indian passport visa requirements for [destination]'. If visa is not required (domestic), set type to 'Not Required' and explain in requirements.",
-                      properties: {
-                        type: {
-                          type: Type.STRING,
-                          description:
-                            "Visa type (e.g., 'Tourist Visa', 'E-Visa', 'On Arrival', 'Not Required')",
-                        },
-                        price: {
-                          type: Type.NUMBER,
-                          description:
-                            "Visa price per person in INR (0 if not required)",
-                        },
-                        duration: {
-                          type: Type.STRING,
-                          description:
-                            "Processing duration (e.g., '5-7 business days', 'Instant for E-Visa')",
-                        },
-                        validity_period: {
-                          type: Type.STRING,
-                          description:
-                            "Visa validity period (e.g., '2 months', '6 months', '1 year')",
-                        },
-                        length_of_stay: {
-                          type: Type.STRING,
-                          description:
-                            "Maximum length of stay allowed (e.g., '30 days', '90 days')",
-                        },
-                        documents_required: {
-                          type: Type.STRING,
-                          description:
-                            "List all required documents (passport, photos, application form, etc.)",
-                        },
-                        requirements: {
-                          type: Type.STRING,
-                          description:
-                            "Detailed visa requirements and important notes. If visa not required, explain why.",
-                        },
-                      },
-                      required: [
-                        "type",
-                        "price",
-                        "duration",
-                        "validity_period",
-                        "length_of_stay",
-                        "documents_required",
-                        "requirements",
-                      ],
-                    },
-                    insurance: {
-                      type: Type.OBJECT,
-                      description:
-                        "Travel insurance information. Always include this.",
-                      properties: {
-                        type: { type: Type.STRING },
-                        coverage: { type: Type.STRING },
-                        note: { type: Type.STRING },
-                      },
-                    },
-                    important_notes: {
-                      type: Type.STRING,
-                      description:
-                        "Important notes and additional information for the itinerary.",
-                    },
-                  },
-                  required: [
-                    "creative_title",
-                    "duration",
-                    "overview",
-                    "day_wise_plan",
-                    "inclusions",
-                    "exclusions",
-                    "insurance",
-                    "important_notes",
-                    "visa",
-                  ],
-                };
-
-                const response = await geminiAI.models.generateContent({
-                  model: "gemini-2.5-flash",
-                  contents: [{ text: contextPrompt }],
-                  config: {
-                    tools: [{ googleSearch: {} }],
-                  },
-                });
-
-                let aiResultText = response.text.trim();
-                // Remove markdown code blocks if present
-                if (aiResultText.startsWith("```")) {
-                  const lines = aiResultText.split("\n");
-                  const startIndex = lines.findIndex((line) =>
-                    line.trim().startsWith("```")
-                  );
-                  const endIndex = lines.findIndex(
-                    (line, idx) =>
-                      idx > startIndex && line.trim().startsWith("```")
-                  );
-                  if (startIndex !== -1 && endIndex !== -1) {
-                    aiResultText = lines
-                      .slice(startIndex + 1, endIndex)
-                      .join("\n")
-                      .trim();
-                  }
-                }
-                const jsonMatch = aiResultText.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                  aiResultText = jsonMatch[0];
-                }
-
-                // Try to parse JSON, with better error handling for control characters
-                let aiResult;
-                try {
-                  aiResult = JSON.parse(aiResultText);
-                } catch (parseError) {
-                  console.error(
-                    `[Task] JSON parse error for lead ${lead.id}:`,
-                    parseError.message
-                  );
-                  const errorPos =
-                    parseError.message.match(/position (\d+)/)?.[1];
-                  if (errorPos) {
-                    const pos = parseInt(errorPos);
-                    console.error(
-                      `[Task] Error at position ${pos}, context:`,
-                      aiResultText.substring(
-                        Math.max(0, pos - 50),
-                        Math.min(aiResultText.length, pos + 50)
-                      )
-                    );
-                  }
-
-                  // Try to fix control characters in JSON strings
-                  // Improved sanitization: handle more edge cases including unicode escapes
-                  let sanitizedText = "";
-                  let insideString = false;
-                  let escapeNext = false;
-                  let inUnicodeEscape = false;
-                  let unicodeEscapeCount = 0;
-
-                  for (let i = 0; i < aiResultText.length; i++) {
-                    const char = aiResultText[i];
-                    const code = char.charCodeAt(0);
-
-                    if (escapeNext) {
-                      sanitizedText += char;
-                      escapeNext = false;
-                      if (char === "u") {
-                        inUnicodeEscape = true;
-                        unicodeEscapeCount = 0;
-                      }
-                      continue;
-                    }
-
-                    if (inUnicodeEscape) {
-                      sanitizedText += char;
-                      unicodeEscapeCount++;
-                      if (unicodeEscapeCount >= 4) {
-                        inUnicodeEscape = false;
-                        unicodeEscapeCount = 0;
-                      }
-                      continue;
-                    }
-
-                    if (char === "\\") {
-                      sanitizedText += char;
-                      escapeNext = true;
-                      continue;
-                    }
-
-                    if (char === '"') {
-                      insideString = !insideString;
-                      sanitizedText += char;
-                      continue;
-                    }
-
-                    // If inside a string and we have a control character, escape it
-                    if (insideString && (code < 0x20 || code === 0x7f)) {
-                      if (code === 0x0a) sanitizedText += "\\n";
-                      else if (code === 0x0d) sanitizedText += "\\r";
-                      else if (code === 0x09) sanitizedText += "\\t";
-                      else if (code === 0x08) sanitizedText += "\\b";
-                      else if (code === 0x0c) sanitizedText += "\\f";
-                      else
-                        sanitizedText += `\\u${code
-                          .toString(16)
-                          .padStart(4, "0")}`;
-                    } else {
-                      sanitizedText += char;
-                    }
-                  }
-
-                  try {
-                    aiResult = JSON.parse(sanitizedText);
-                    console.log(
-                      `[Task] Successfully parsed JSON after sanitization for lead ${lead.id}`
-                    );
-                  } catch (retryError) {
-                    console.error(
-                      `[Task] Failed to parse JSON even after sanitization for lead ${lead.id}:`,
-                      retryError.message
-                    );
-                    throw new Error(
-                      `Failed to parse AI response as JSON: ${parseError.message}. Sanitization also failed: ${retryError.message}`
-                    );
-                  }
-                }
-
-                const { data: newMetaData, error: metaError } = await supabase
-                  .from("itineraries")
-                  .insert({
-                    lead_id: fullLeadData.id,
-                    customer_id: fullLeadData.customer_id,
-                    creative_title: aiResult.creative_title,
-                    duration: aiResult.duration,
-                    destination: fullLeadData.destination,
-                    travel_date: fullLeadData.travel_date,
-                    starting_point: fullLeadData.starting_point,
-                    adults: fullLeadData.requirements.adults,
-                    children: fullLeadData.requirements.children,
-                    infants: fullLeadData.requirements.babies,
-                    created_by_staff_id: primaryAssignee.id,
-                    branch_id: fullLeadData.branch_ids[0],
-                    is_final: false,
-                    modified_at: new Date().toISOString(),
-                    status: "Prepared",
-                  })
-                  .select()
-                  .single();
-                if (metaError) throw metaError;
-
-                const dayWisePlanForDb = aiResult.day_wise_plan.map(
-                  (day, index) => ({
-                    id: Date.now() + index,
-                    day: day.day,
-                    date: "", // Can be calculated on the frontend
-                    title: day.title,
-                    description: day.description,
-                    meals: { b: false, l: false, d: false },
-                    hotels: [],
-                    transfers: [],
-                    activities: [],
-                  })
-                );
-
-                // Process flights, hotels, visa from AI result
-                const aiFlights = (aiResult.flights || []).map(
-                  (flight, idx) => ({
-                    id: Date.now() + idx + 1000,
-                    direction: flight.direction || "onward",
-                    segments: [
-                      {
-                        id: Date.now() + idx + 2000,
-                        airline: flight.airline || "",
-                        flight_number: flight.flight_number || "",
-                        from: flight.from || "",
-                        to: flight.to || "",
-                        from_airport: flight.from || "",
-                        to_airport: flight.to || "",
-                        departure_time:
-                          flight.departure_date && flight.departure_time
-                            ? `${flight.departure_date}T${flight.departure_time}:00`
-                            : null,
-                        arrival_time:
-                          flight.arrival_date && flight.arrival_time
-                            ? `${flight.arrival_date}T${flight.arrival_time}:00`
-                            : null,
-                        duration: flight.duration || "",
-                        stop: flight.stops || "0",
-                        price: flight.price || 0,
-                      },
-                    ],
-                    totalDuration: flight.duration || "",
-                    price: flight.price || 0,
-                  })
-                );
-
-                const aiHotels = (aiResult.hotels || []).map((hotel, idx) => ({
-                  id: Date.now() + idx + 3000,
-                  name: hotel.name || "",
-                  city: hotel.city || "",
-                  check_in_date: hotel.check_in_date || "",
-                  check_out_date: hotel.check_out_date || "",
-                  nights: hotel.nights || 0,
-                  rooms: hotel.rooms || 1,
-                  room_type: hotel.room_type || "",
-                  pricing_type: hotel.pricing_type || "Per Adult",
-                  rate_per_night: hotel.rate_per_night || 0,
-                  currency: "INR",
-                  included: true,
-                }));
-
-                const aiVisa = aiResult.visa
-                  ? {
-                      type: aiResult.visa.type || "",
-                      price: aiResult.visa.price || 0,
-                      duration: aiResult.visa.duration || "",
-                      validity_period: aiResult.visa.validity_period || "",
-                      length_of_stay: aiResult.visa.length_of_stay || "",
-                      documents_required:
-                        aiResult.visa.documents_required || "",
-                      requirements: aiResult.visa.requirements || "",
-                    }
-                  : null;
-
-                const aiInsurance = aiResult.insurance || {
-                  type: "Travel Insurance",
-                  coverage: "Standard travel insurance coverage",
-                  note: "Travel insurance included in the package",
-                };
-
-                const newVersionData = {
-                  itinerary_id: newMetaData.id,
-                  version_number: 1,
-                  modified_at: new Date().toISOString(),
-                  modified_by_staff_id: primaryAssignee.id,
-                  overview: aiResult.overview,
-                  day_wise_plan: dayWisePlanForDb,
-                  inclusions: Array.isArray(aiResult.inclusions)
-                    ? aiResult.inclusions.join("\n")
-                    : aiResult.inclusions || "",
-                  exclusions: Array.isArray(aiResult.exclusions)
-                    ? aiResult.exclusions.join("\n")
-                    : aiResult.exclusions || "",
-                  terms_and_conditions: branchTerms || "", // Use default from branch
-                  cancellation_policy: branchCancellationPolicy || "", // Use default from branch
-                  important_notes: aiResult.important_notes || "",
-                  detailed_flights: aiFlights,
-                  detailed_hotels: aiHotels,
-                  detailed_visa: aiVisa,
-                  detailed_insurance: aiInsurance,
-                };
-                const { error: versionError } = await supabase
-                  .from("itinerary_versions")
-                  .insert(newVersionData);
-                if (versionError) throw versionError;
-
-                const { data: currentLeadData } = await supabase
-                  .from("leads")
-                  .select("itinerary_ids, activity")
-                  .eq("id", lead.id)
-                  .single();
-                const updatedItineraryIds = [
-                  ...(currentLeadData?.itinerary_ids || []),
-                  newMetaData.id,
-                ];
-                const aiActivity = {
-                  id: Date.now() + 2,
-                  type: "Itinerary Generated",
-                  description:
-                    "AI generated the initial draft (v1) of the itinerary.",
-                  user: "AI Assistant",
-                  timestamp: new Date().toISOString(),
-                };
-                const updatedActivity = [
-                  aiActivity,
-                  ...(currentLeadData?.activity || []),
-                ];
-
-                await supabase
-                  .from("leads")
-                  .update({
-                    itinerary_ids: updatedItineraryIds,
-                    activity: updatedActivity,
-                    last_updated: new Date().toISOString(),
-                  })
-                  .eq("id", lead.id);
-
-                console.log(
-                  `[Task] Successfully generated and created AI itinerary v1 for lead ${lead.id}.`
-                );
-              } catch (error) {
-                console.error(
-                  `[Task] Error generating AI itinerary v1 for lead ${lead.id}:`,
-                  error.message
-                );
-              }
-            })()
-          );
-        } else {
-          // Log why itinerary generation was skipped
-          if (lead.status === "Enquiry") {
-            console.log(
-              `[Task] Skipping itinerary generation for lead ${lead.id}. Lead status is "Enquiry". Itineraries are only generated when status changes to "Processing".`
-            );
-          } else if (hasOnlyNonTourServices) {
-            console.log(
-              `[Task] Skipping itinerary generation for lead ${
-                lead.id
-              }. Lead has only non-tour services: [${lead.services.join(
-                ", "
-              )}]. Itinerary is only generated for Tour Package leads.`
-            );
-          } else if (!hasTourPackage) {
-            console.log(
-              `[Task] Skipping itinerary generation for lead ${
-                lead.id
-              }. Tour Package not found in services: [${
-                lead.services?.join(", ") || "none"
-              }].`
-            );
-          }
-        }
-
-        // Wait for all concurrent tasks to complete (or fail) before cleaning up.
-        if (concurrentTasks.length > 0) {
-          await Promise.allSettled(concurrentTasks);
-        }
-      } catch (error) {
-        console.error(
-          `[CRITICAL] Failed staff assignment process for lead ${lead.id}:`,
-          error.message
-        );
-        // Cleanup status hello -if critical path fails. The 'finally' block will also run.
-        await supabase
-          .from("leads")
-          .update({ current_staff_name: null })
-          .eq("id", lead.id);
-        continue; // Skip to next lead
-      } finally {
-        // This 'finally' block guarantees that the UI status indicator is cleared
-        // for this lead, regardless of whether the concurrent tasks succeeded or failed.
-        await supabase
-          .from("leads")
-          .update({ current_staff_name: null })
-          .eq("id", lead.id);
-        console.log(`All tasks for lead ${lead.id} are complete.`);
-      }
-    }
-    console.log("Lead processing check complete.");
-  } catch (error) {
-    console.error("Error during lead processing:", error.message);
-  }
-};
-
-// FALLBACK: Lightweight polling as safety net (runs every 60 seconds)
-// Primary assignment is event-driven via realtime listener, but this catches any leads that realtime might miss
-// Checks ALL unassigned "Enquiry" leads to ensure nothing is left behind
-const fallbackAssignmentCheck = async () => {
-  try {
-    // Check ALL unassigned "Enquiry" leads (not just recent ones) to ensure nothing is left behind
-    // Limit to 50 leads per run to avoid overload - will catch more on next run if needed
-    const { data: recentLeads, error: leadsError } = await supabase
-      .from("leads")
-      .select("id")
-      .eq("status", "Enquiry")
-      .order("created_at", { ascending: false })
-      .limit(50); // Limit to 50 to avoid overload (processes more on next run if needed)
-
-    if (leadsError) {
-      const errorMsg =
-        leadsError?.message ||
-        leadsError?.toString() ||
-        JSON.stringify(leadsError) ||
-        "Unknown error";
-      // Check if it's a Cloudflare/network error (HTML response)
-      if (
-        typeof errorMsg === "string" &&
-        (errorMsg.includes("<html>") ||
-          errorMsg.includes("500 Internal Server Error"))
-      ) {
-        console.warn(
-          "[FallbackAssignment] ⚠️ Network/Cloudflare error when fetching leads (likely temporary). Will retry on next cycle."
-        );
-      } else {
-        console.error("[FallbackAssignment] Error fetching leads:", errorMsg);
-      }
-      return;
-    }
-
-    if (!recentLeads || recentLeads.length === 0) {
-      return; // No recent leads to check
-    }
-
-    const leadIds = recentLeads.map((l) => l.id);
-
-    // Check which ones are already assigned
-    const { data: assignedLeads, error: assignedError } = await supabase
-      .from("lead_assignees")
-      .select("lead_id")
-      .in("lead_id", leadIds);
-
-    if (assignedError) {
-      const errorMessage =
-        assignedError?.message ||
-        assignedError?.toString() ||
-        JSON.stringify(assignedError) ||
-        "Unknown error";
-      // Check if it's a Cloudflare/network error (HTML response)
-      if (
-        typeof errorMessage === "string" &&
-        (errorMessage.includes("<html>") ||
-          errorMessage.includes("500 Internal Server Error"))
-      ) {
-        console.warn(
-          "[FallbackAssignment] ⚠️ Network/Cloudflare error when checking assignments (likely temporary). Will retry on next cycle."
-        );
-      } else {
-        console.error(
-          "[FallbackAssignment] Error checking assignments:",
-          errorMessage
-        );
-      }
-      return;
-    }
-
-    const assignedLeadIds = new Set(
-      (assignedLeads || []).map((a) => a.lead_id)
-    );
-    const unassignedLeadIds = leadIds.filter((id) => !assignedLeadIds.has(id));
-
-    if (unassignedLeadIds.length > 0) {
-      console.log(
-        `[FallbackAssignment] Found ${unassignedLeadIds.length} unassigned lead(s), triggering assignment...`
-      );
-      // Process each unassigned lead (event-driven mode)
-      for (const leadId of unassignedLeadIds) {
-        assignLeadsAndGenerateItineraries(leadId).catch((err) => {
-          const errorMsg =
-            err?.message ||
-            err?.toString() ||
-            JSON.stringify(err) ||
-            "Unknown error";
-          console.error(
-            `[FallbackAssignment] Error assigning lead ${leadId}:`,
-            errorMsg
-          );
-        });
-      }
-    }
-  } catch (error) {
-    const errorMessage =
-      error?.message ||
-      error?.toString() ||
-      JSON.stringify(error) ||
-      "Unknown error";
-    console.error(
-      "[FallbackAssignment] Error in fallback check:",
-      errorMessage
-    );
-  }
-};
-
-// Run fallback check every 60 seconds (lightweight safety net)
-setInterval(fallbackAssignmentCheck, 60 * 1000);
-// Also run immediately on startup (catches any leads created during server restart)
-setTimeout(fallbackAssignmentCheck, 5000); // Wait 5 seconds after startup
-
 // --- DAILY PRODUCTIVITY SUMMARY ---
 // Sends daily summary at 8 PM to each branch admin
 async function sendDailyProductivitySummary() {
@@ -3774,7 +2071,7 @@ async function sendDailyProductivitySummary() {
         });
 
         // Build summary message
-        const summaryMessage = `📊 *Daily Productivity Summary*\n*${branch.name}*\n\n📅 *Date:* ${dateStr}\n\n📈 *Today's Performance:*\n\n🆕 *New Leads:* ${totalLeads}\n✅ *Confirmed:* ${confirmedLeads}\n💳 *Billing Completed:* ${paidLeads}\n❌ *Rejected/Lost:* ${rejectedLeads}\n\n📊 *Conversion Rate:* ${conversionRate}%\n\nKeep up the great work! 💪`;
+        const summaryMessage = `ðŸ“Š *Daily Productivity Summary*\n*${branch.name}*\n\nðŸ“… *Date:* ${dateStr}\n\nðŸ“ˆ *Today's Performance:*\n\nðŸ†• *New Leads:* ${totalLeads}\nâœ… *Confirmed:* ${confirmedLeads}\nðŸ’³ *Billing Completed:* ${paidLeads}\nâŒ *Rejected/Lost:* ${rejectedLeads}\n\nðŸ“Š *Conversion Rate:* ${conversionRate}%\n\nKeep up the great work! ðŸ’ª`;
 
         // Normalize branch primary contact phone
         let sanitizedPhone = normalizePhone(branch.primary_contact, "IN");
@@ -3827,7 +2124,7 @@ async function sendDailyProductivitySummary() {
           };
 
           console.log(
-            `[DailySummary] 📤 Sending template to ${branch.name} (${sanitizedPhone})`
+            `[DailySummary] ðŸ“¤ Sending template to ${branch.name} (${sanitizedPhone})`
           );
           const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
             method: "POST",
@@ -3842,7 +2139,7 @@ async function sendDailyProductivitySummary() {
           if (response.ok && apiResult.messages) {
             result = apiResult;
             console.log(
-              `[DailySummary] ✅ Template sent successfully to ${branch.name}`
+              `[DailySummary] âœ… Template sent successfully to ${branch.name}`
             );
           } else {
             const errorDetails = apiResult.error || apiResult;
@@ -3852,14 +2149,14 @@ async function sendDailyProductivitySummary() {
               errorDetails.type === "OAuthException"
             ) {
               console.error(
-                `[DailySummary] 🔴 TOKEN EXPIRED: WhatsApp token has expired!`,
+                `[DailySummary] ðŸ”´ TOKEN EXPIRED: WhatsApp token has expired!`,
                 errorDetails.message || ""
               );
               console.error(
-                `[DailySummary] ⚠️ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
+                `[DailySummary] âš ï¸ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
               );
             }
-            console.warn(`[DailySummary] ⚠️ Template failed. Using fallback.`);
+            console.warn(`[DailySummary] âš ï¸ Template failed. Using fallback.`);
             throw new Error(`Template failed: ${JSON.stringify(apiResult)}`);
           }
         } catch (templateError) {
@@ -3872,11 +2169,11 @@ async function sendDailyProductivitySummary() {
 
         if (result) {
           console.log(
-            `[DailySummary] ✅ Summary sent to ${branch.name} (${sanitizedPhone})`
+            `[DailySummary] âœ… Summary sent to ${branch.name} (${sanitizedPhone})`
           );
         } else {
           console.error(
-            `[DailySummary] ❌ Failed to send summary to ${branch.name} (${sanitizedPhone})`
+            `[DailySummary] âŒ Failed to send summary to ${branch.name} (${sanitizedPhone})`
           );
         }
 
@@ -4019,7 +2316,7 @@ function scheduleTboStaticDataRefresh() {
   async function runTboRefresh() {
     const startTime = Date.now();
     console.log(
-      `\n[${new Date().toISOString()}] 🚀 Starting scheduled TBO static data refresh...\n`
+      `\n[${new Date().toISOString()}] ðŸš€ Starting scheduled TBO static data refresh...\n`
     );
 
     try {
@@ -4027,7 +2324,7 @@ function scheduleTboStaticDataRefresh() {
       console.log("[TBO Refresh] Step 1/3: Refreshing countries...");
       const countries = await fetchTboCountryList();
       await storeTboCountries(countries);
-      console.log(`[TBO Refresh] ✅ Refreshed ${countries.length} countries`);
+      console.log(`[TBO Refresh] âœ… Refreshed ${countries.length} countries`);
 
       // Step 2: Refresh cities
       console.log("[TBO Refresh] Step 2/3: Refreshing cities...");
@@ -4045,12 +2342,12 @@ function scheduleTboStaticDataRefresh() {
           await new Promise((resolve) => setTimeout(resolve, 300)); // Rate limiting
         } catch (error) {
           console.error(
-            `[TBO Refresh] ⚠️  Skipping cities for ${country.code}: ${error.message}`
+            `[TBO Refresh] âš ï¸  Skipping cities for ${country.code}: ${error.message}`
           );
           continue;
         }
       }
-      console.log(`[TBO Refresh] ✅ Refreshed ${citiesProcessed} cities`);
+      console.log(`[TBO Refresh] âœ… Refreshed ${citiesProcessed} cities`);
 
       // Step 3: Refresh hotels
       console.log("[TBO Refresh] Step 3/3: Refreshing hotels...");
@@ -4069,20 +2366,20 @@ function scheduleTboStaticDataRefresh() {
           await new Promise((resolve) => setTimeout(resolve, 300)); // Rate limiting
         } catch (error) {
           console.error(
-            `[TBO Refresh] ⚠️  Skipping hotels for city ${city.code}: ${error.message}`
+            `[TBO Refresh] âš ï¸  Skipping hotels for city ${city.code}: ${error.message}`
           );
           continue;
         }
       }
 
       const duration = ((Date.now() - startTime) / 1000 / 60).toFixed(2);
-      console.log(`[TBO Refresh] ✅ Refresh completed!`);
+      console.log(`[TBO Refresh] âœ… Refresh completed!`);
       console.log(
         `[TBO Refresh]   Countries: ${countries.length}, Cities: ${citiesProcessed}, Hotels: ${totalHotels}`
       );
       console.log(`[TBO Refresh]   Duration: ${duration} minutes\n`);
     } catch (error) {
-      console.error(`[TBO Refresh] ❌ Error during refresh:`, error.message);
+      console.error(`[TBO Refresh] âŒ Error during refresh:`, error.message);
       logger.error("[TBO Refresh] Scheduled refresh failed", {
         error: error.message,
         stack: error.stack,
@@ -4176,7 +2473,7 @@ async function sendFeedbackLinkMessage(lead, customer) {
       const customerFirstName = customer.first_name || "Customer";
 
       // Template structure:
-      // Body: Hello {{1}}! 👋 ... (uses customer first name)
+      // Body: Hello {{1}}! ðŸ‘‹ ... (uses customer first name)
       // Button: "Rate Your Experience" - URL is STATIC (hardcoded in Meta Business Manager)
       // Footer: "Madura Travel Service" - static text
       const templatePayload = {
@@ -4197,7 +2494,7 @@ async function sendFeedbackLinkMessage(lead, customer) {
       };
 
       console.log(
-        `[Feedback] 📤 Sending feedback_request template to ${sanitizedPhone}`
+        `[Feedback] ðŸ“¤ Sending feedback_request template to ${sanitizedPhone}`
       );
       const response = await fetch(WHATSAPP_GRAPH_API_BASE, {
         method: "POST",
@@ -4212,11 +2509,11 @@ async function sendFeedbackLinkMessage(lead, customer) {
       if (response.ok && apiResult.messages) {
         result = apiResult;
         console.log(
-          `[Feedback] ✅ Template message sent successfully for lead ${lead.id}`
+          `[Feedback] âœ… Template message sent successfully for lead ${lead.id}`
         );
       } else {
         console.warn(
-          `[Feedback] ⚠️ Template message failed. Reason: ${JSON.stringify(
+          `[Feedback] âš ï¸ Template message failed. Reason: ${JSON.stringify(
             apiResult
           )}`
         );
@@ -4224,13 +2521,13 @@ async function sendFeedbackLinkMessage(lead, customer) {
       }
     } catch (templateError) {
       console.warn(
-        `[Feedback] ⚠️ Template message failed for lead ${lead.id}. Trying plain text fallback:`,
+        `[Feedback] âš ï¸ Template message failed for lead ${lead.id}. Trying plain text fallback:`,
         templateError.message
       );
       // Fallback: Send as plain text with link in message
       const feedbackLink =
         "https://search.google.com/local/writereview?placeid=ChIJnVd0XJ9nUjoRblhbY-Aip8k";
-      const fallbackMessage = `Hello ${customer.first_name}! 👋\n\nThank you for choosing Madura Travel Service! We hope you had a wonderful experience with us. 🌟\n\nWe would love to hear your feedback! Please take a moment to share your experience by clicking the link below:\n\n🔗 ${feedbackLink}\n\nYour feedback helps us serve you better! 🙏`;
+      const fallbackMessage = `Hello ${customer.first_name}! ðŸ‘‹\n\nThank you for choosing Madura Travel Service! We hope you had a wonderful experience with us. ðŸŒŸ\n\nWe would love to hear your feedback! Please take a moment to share your experience by clicking the link below:\n\nðŸ”— ${feedbackLink}\n\nYour feedback helps us serve you better! ðŸ™`;
       result = await sendCrmWhatsappText(sanitizedPhone, fallbackMessage);
     }
 
@@ -4242,7 +2539,7 @@ async function sendFeedbackLinkMessage(lead, customer) {
         "System"
       );
       console.log(
-        `[Feedback] ✅ Feedback link sent successfully to customer for lead ${lead.id}`
+        `[Feedback] âœ… Feedback link sent successfully to customer for lead ${lead.id}`
       );
     } else {
       await logLeadActivity(
@@ -4252,7 +2549,7 @@ async function sendFeedbackLinkMessage(lead, customer) {
         "System"
       );
       console.error(
-        `[Feedback] ❌ Failed to send feedback link for lead ${lead.id}`
+        `[Feedback] âŒ Failed to send feedback link for lead ${lead.id}`
       );
     }
   } catch (error) {
@@ -4522,7 +2819,7 @@ const checkLeadUpdatesAndNotify = async () => {
               .update({ notified_status: "Feedback" })
               .eq("id", lead.id);
             console.log(
-              `[UpdateNotifier] ✅ Feedback template sent for lead ${lead.id}`
+              `[UpdateNotifier] âœ… Feedback template sent for lead ${lead.id}`
             );
           } catch (feedbackError) {
             console.error(
@@ -5058,14 +3355,14 @@ app.post("/api/lead/website", async (req, res) => {
         // DISABLED: MTS summary auto-sending
         // await sendWelcomeWhatsapp(createdLead, customer, staffForMessage);
         // console.log(
-        //   `[Website Lead] ✅ Confirmation template sent for lead ${createdLead.id}.`
+        //   `[Website Lead] âœ… Confirmation template sent for lead ${createdLead.id}.`
         // );
         console.log(
           `[Website Lead] MTS summary auto-sending is disabled for lead ${createdLead.id}.`
         );
       } catch (welcomeError) {
         console.error(
-          `[Website Lead] ⚠️ Failed to send confirmation template for lead ${createdLead.id}:`,
+          `[Website Lead] âš ï¸ Failed to send confirmation template for lead ${createdLead.id}:`,
           welcomeError.message
         );
         // Don't fail the request if WhatsApp sending fails
@@ -5149,7 +3446,7 @@ const RAZORPAY_API_URL = "https://api.razorpay.com/v1";
 
 if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
   console.log(
-    "⚠️ WARNING: Razorpay Key ID or Key Secret is not defined. Invoicing will fail."
+    "âš ï¸ WARNING: Razorpay Key ID or Key Secret is not defined. Invoicing will fail."
   );
 } else {
   console.log(`[Razorpay] Using Key ID: ${RAZORPAY_KEY_ID.substring(0, 8)}...`);
@@ -5193,7 +3490,7 @@ async function sendInvoiceWhatsappMessage(
     return null;
   }
 
-  const amountText = `₹${(
+  const amountText = `â‚¹${(
     invoice.balance_due ??
     invoice.total_amount ??
     0
@@ -5251,13 +3548,13 @@ async function sendInvoiceWhatsappMessage(
 
     if (templateResult) {
       console.log(
-        `[Invoice WhatsApp] ✅ Template "${WHATSAPP_INVOICE_TEMPLATE}" sent for invoice #${invoice.invoice_number}`
+        `[Invoice WhatsApp] âœ… Template "${WHATSAPP_INVOICE_TEMPLATE}" sent for invoice #${invoice.invoice_number}`
       );
       return { result: templateResult, channel: "template" };
     }
   } catch (templateErr) {
     console.warn(
-      `[Invoice WhatsApp] ⚠️ Template "${WHATSAPP_INVOICE_TEMPLATE}" failed, will fallback to CTA:`,
+      `[Invoice WhatsApp] âš ï¸ Template "${WHATSAPP_INVOICE_TEMPLATE}" failed, will fallback to CTA:`,
       templateErr.message
     );
   }
@@ -5267,9 +3564,9 @@ async function sendInvoiceWhatsappMessage(
       customer.first_name || "there"
     },\n\nHere is your invoice #${invoice.invoice_number}${
       leadDestination ? ` for *${leadDestination}*` : ""
-    }.\n\n*Total Amount:* ₹${(invoice.total_amount ?? 0).toLocaleString(
+    }.\n\n*Total Amount:* â‚¹${(invoice.total_amount ?? 0).toLocaleString(
       "en-IN"
-    )}\n*Balance Due:* ₹${(invoice.balance_due ?? 0).toLocaleString(
+    )}\n*Balance Due:* â‚¹${(invoice.balance_due ?? 0).toLocaleString(
       "en-IN"
     )}\n\nPlease use the button below to complete your payment.`;
 
@@ -5282,14 +3579,14 @@ async function sendInvoiceWhatsappMessage(
 
     if (ctaResult) {
       console.log(
-        `[Invoice WhatsApp] ✅ CTA fallback sent for invoice #${invoice.invoice_number}`
+        `[Invoice WhatsApp] âœ… CTA fallback sent for invoice #${invoice.invoice_number}`
       );
       return { result: ctaResult, channel: "cta" };
     }
   }
 
   console.warn(
-    `[Invoice WhatsApp] ❌ Failed to send invoice WhatsApp message for #${invoice.invoice_number}`
+    `[Invoice WhatsApp] âŒ Failed to send invoice WhatsApp message for #${invoice.invoice_number}`
   );
   return null;
 }
@@ -5341,7 +3638,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
       JSON.stringify(formData, null, 2)
     );
 
-    // Academy WhatsApp lead – only these fields are sent from the bot (no travel/tourism)
+    // Academy WhatsApp lead â€“ only these fields are sent from the bot (no travel/tourism)
     const {
       name,
       phone,
@@ -5371,7 +3668,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     const targetBranchId = formData.branchId || 1;
 
     console.log(
-      `[CRM] 🏢 Processing lead for Branch ID: ${targetBranchId} (${
+      `[CRM] ðŸ¢ Processing lead for Branch ID: ${targetBranchId} (${
         targetBranchId === 1 ? "India" : "Australia"
       })`
     );
@@ -5647,7 +3944,7 @@ app.post("/api/lead/whatsapp", async (req, res) => {
     if (whatsapp_programme)
       academy_data.programme_applied_for = whatsapp_programme;
 
-    // 3. Create Lead – academy schema only (enquiry + academy_data; no travel/tourism columns)
+    // 3. Create Lead â€“ academy schema only (enquiry + academy_data; no travel/tourism columns)
     const newLead = {
       customer_id: customer.id,
       status: "Enquiry",
@@ -6025,7 +4322,7 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
         .map(([field]) => field)
         .join(", ");
       console.log(
-        `[Send Summary] ⚠️ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`
+        `[Send Summary] âš ï¸ Cannot send MTS summary for lead ${lead.id}: Missing required fields: ${requiredMissingFields}`
       );
       return res.status(400).json({
         message: `Cannot send summary. Missing required fields: ${requiredMissingFields}. Please fill: Services, Destination, and Duration. (Date of Travel and Passenger Details are optional and can be filled by agents later.)`,
@@ -6062,7 +4359,7 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
     // Send mts_summary template ONLY (includes welcome message + confirmation buttons)
     // This is the single welcome/confirmation message - no separate messages needed
     console.log(
-      `[Send Summary] 📤 Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`
+      `[Send Summary] ðŸ“¤ Sending mts_summary template (welcome + confirmation) to ${sanitizedPhone} for lead ${lead.id}.`
     );
 
     const result = await sendCrmWhatsappTemplate(
@@ -6083,16 +4380,16 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
           timestamp: Date.now(),
         });
         console.log(
-          `[Send Summary] ✅ Template sent successfully. Message ID: ${messageId}, Lead ID: ${lead.id}`
+          `[Send Summary] âœ… Template sent successfully. Message ID: ${messageId}, Lead ID: ${lead.id}`
         );
       } else {
         console.log(
-          `[Send Summary] ✅ Template sent successfully (no message ID in response) for lead ${lead.id}.`
+          `[Send Summary] âœ… Template sent successfully (no message ID in response) for lead ${lead.id}.`
         );
       }
     } else {
       console.error(
-        `[Send Summary] ❌ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`
+        `[Send Summary] âŒ Failed to send mts_summary template for lead ${lead.id} to ${sanitizedPhone}. Template may not be approved in Meta Business Manager.`
       );
     }
 
@@ -6115,7 +4412,7 @@ app.post("/api/whatsapp/send-summary", async (req, res) => {
   }
 });
 
-// Itineraries not in scope for this CRM – endpoint disabled
+// Itineraries not in scope for this CRM â€“ endpoint disabled
 app.post("/api/whatsapp/send-itinerary", (_req, res) => {
   return res
     .status(501)
@@ -6484,7 +4781,7 @@ app.post("/api/feedback/send", async (req, res) => {
       .eq("id", leadId);
 
     console.log(
-      `[Feedback Endpoint] ✅ Feedback template sent successfully for lead ${leadId}`
+      `[Feedback Endpoint] âœ… Feedback template sent successfully for lead ${leadId}`
     );
 
     return res.status(200).json({
@@ -6565,7 +4862,7 @@ app.post("/api/razorpay-webhook", async (req, res) => {
 
       // 4. Update Lead Status
       if (invoice.lead) {
-        const activityDescription = `Payment of ₹${amountPaid.toLocaleString()} received via Razorpay for Invoice #${
+        const activityDescription = `Payment of â‚¹${amountPaid.toLocaleString()} received via Razorpay for Invoice #${
           invoice.invoice_number
         }.`;
         const newActivity = {
@@ -6599,7 +4896,7 @@ app.post("/api/razorpay-webhook", async (req, res) => {
           if (sanitizedPhone.length === 10)
             sanitizedPhone = "91" + sanitizedPhone;
 
-          const confirmationMessage = `🎉 Your payment of ₹${amountPaid.toLocaleString()} for the trip to *${
+          const confirmationMessage = `ðŸŽ‰ Your payment of â‚¹${amountPaid.toLocaleString()} for the trip to *${
             invoice.lead.destination
           }* has been received!\n\nYour booking is now confirmed. Our team will get in touch with you shortly with the next steps. Thank you for choosing Madura Travel Service!`;
           await sendCrmWhatsappText(sanitizedPhone, confirmationMessage);
@@ -6638,7 +4935,7 @@ const sendSupplierRequestEmails = async (
   );
 
   const emailPromises = suppliers.map((supplier) => {
-    const subject = `Madura Travel Service Requirement – ${
+    const subject = `Madura Travel Service Requirement â€“ ${
       lead.starting_point || "N/A"
     } to ${lead.destination} (${new Date(
       lead.travel_date
@@ -6832,8 +5129,8 @@ app.post("/api/email/send-supplier-request", async (req, res) => {
 
 // --- REALTIME LISTENER FOR MANUAL ASSIGNMENTS ---
 // This listener handles BOTH primary and secondary staff assignments:
-// - When a lead is first assigned (primary staff) → sends notification
-// - When a 2nd, 3rd, etc. staff is added later (secondary staff) → sends notification
+// - When a lead is first assigned (primary staff) â†’ sends notification
+// - When a 2nd, 3rd, etc. staff is added later (secondary staff) â†’ sends notification
 // - Works for both AI auto-assignments and manual assignments from CRM UI
 let retryCount = 0;
 const MAX_RETRIES = 10; // Limit retries to prevent infinite loops
@@ -6842,7 +5139,7 @@ const listenForManualAssignments = () => {
   // Prevent infinite retry loops
   if (retryCount >= MAX_RETRIES) {
     console.error(
-      `[Realtime] ⚠️ Max retries (${MAX_RETRIES}) reached for lead assignee subscription. Stopping retries.`
+      `[Realtime] âš ï¸ Max retries (${MAX_RETRIES}) reached for lead assignee subscription. Stopping retries.`
     );
     retryCount = 0; // Reset after a delay
     setTimeout(() => {
@@ -6861,14 +5158,14 @@ const listenForManualAssignments = () => {
       { event: "INSERT", schema: "public", table: "lead_assignees" },
       async (payload) => {
         console.log(
-          "[Realtime] 🔔 New lead assignment detected:",
+          "[Realtime] ðŸ”” New lead assignment detected:",
           JSON.stringify(payload.new, null, 2)
         );
         const { lead_id, staff_id } = payload.new;
 
         if (!lead_id || !staff_id) {
           console.error(
-            "[Realtime] ❌ Invalid assignment payload - missing lead_id or staff_id:",
+            "[Realtime] âŒ Invalid assignment payload - missing lead_id or staff_id:",
             payload.new
           );
           return;
@@ -6942,7 +5239,7 @@ const listenForManualAssignments = () => {
 
           if (!newlyAssignedStaff) {
             console.error(
-              `[Realtime] ❌ Could not find newly assigned staff for lead ${lead_id}. Staff ID: ${staff_id}, Found assignees: ${
+              `[Realtime] âŒ Could not find newly assigned staff for lead ${lead_id}. Staff ID: ${staff_id}, Found assignees: ${
                 lead.all_assignees?.length || 0
               }, Assignee IDs: ${
                 lead.all_assignees?.map((a) => a.staff?.id).join(", ") || "none"
@@ -6959,7 +5256,7 @@ const listenForManualAssignments = () => {
 
           if (!customer) {
             console.error(
-              `[Realtime] ❌ Could not find customer for lead ${lead_id}. Customer ID: ${lead.customer_id}`
+              `[Realtime] âŒ Could not find customer for lead ${lead_id}. Customer ID: ${lead.customer_id}`
             );
             await logLeadActivity(
               lead_id,
@@ -6971,7 +5268,7 @@ const listenForManualAssignments = () => {
           }
 
           console.log(
-            `[Realtime] ✅ Found staff: ${newlyAssignedStaff.name} (Phone: ${newlyAssignedStaff.phone}), Customer: ${customer.first_name} ${customer.last_name}`
+            `[Realtime] âœ… Found staff: ${newlyAssignedStaff.name} (Phone: ${newlyAssignedStaff.phone}), Customer: ${customer.first_name} ${customer.last_name}`
           );
 
           // Check if we've already sent a notification for this assignment recently
@@ -7013,11 +5310,11 @@ const listenForManualAssignments = () => {
               // try {
               //   await sendWelcomeWhatsapp(lead, customer, newlyAssignedStaff);
               //   console.log(
-              //     `[Realtime] ✅ MTS summary sent successfully to customer for lead ${lead.id}`
+              //     `[Realtime] âœ… MTS summary sent successfully to customer for lead ${lead.id}`
               //   );
               // } catch (summaryError) {
               //   console.error(
-              //     `[Realtime] ❌ Error sending MTS summary to customer for lead ${lead.id}:`,
+              //     `[Realtime] âŒ Error sending MTS summary to customer for lead ${lead.id}:`,
               //     summaryError.message,
               //     summaryError.stack
               //   );
@@ -7112,7 +5409,7 @@ const listenForManualAssignments = () => {
             "Unknown error";
           const errorStack = error?.stack || "No stack trace";
           console.error(
-            "[Realtime] ❌ Error processing manual assignment notification:",
+            "[Realtime] âŒ Error processing manual assignment notification:",
             errorMessage,
             errorStack
           );
@@ -7138,7 +5435,7 @@ const listenForManualAssignments = () => {
     .subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
         console.log(
-          "[Realtime] ✅ Listening for manual lead assignments to send notifications."
+          "[Realtime] âœ… Listening for manual lead assignments to send notifications."
         );
         retryCount = 0; // Reset on success
       } else {
@@ -7154,14 +5451,14 @@ const listenForManualAssignments = () => {
           !errorMessage.includes("mismatch between server and client bindings")
         ) {
           console.error(
-            `[Realtime] ❌ Failed to subscribe to lead assignee changes (attempt ${retryCount}/${MAX_RETRIES}):`,
+            `[Realtime] âŒ Failed to subscribe to lead assignee changes (attempt ${retryCount}/${MAX_RETRIES}):`,
             errorMessage
           );
         } else {
           // Log mismatch error less frequently (every 5th attempt)
           if (retryCount % 5 === 0) {
             console.warn(
-              `[Realtime] ⚠️ Realtime subscription mismatch error (attempt ${retryCount}/${MAX_RETRIES}). This is a known Supabase issue and may resolve automatically.`
+              `[Realtime] âš ï¸ Realtime subscription mismatch error (attempt ${retryCount}/${MAX_RETRIES}). This is a known Supabase issue and may resolve automatically.`
             );
           }
         }
@@ -7241,7 +5538,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
           if (err instanceof multer.MulterError) {
             if (err.code === "LIMIT_FILE_SIZE") {
               console.error(
-                "[Job Applicants] ❌ File size error:",
+                "[Job Applicants] âŒ File size error:",
                 err.message
               );
               return res.status(413).json({
@@ -7281,7 +5578,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
         } = req.body;
 
         // Log form submission
-        console.log(`[Job Applicants] 📋 New job application form submitted`);
+        console.log(`[Job Applicants] ðŸ“‹ New job application form submitted`);
         console.log(`[Job Applicants] Name: ${first_name} ${last_name}`);
         console.log(
           `[Job Applicants] Role Applied For: ${
@@ -7351,11 +5648,11 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
             finalResumeFileName = fileNameToUse;
             finalResumeFileType = fileTypeToUse;
             console.log(
-              `[Job Applicants] ✅ Resume uploaded successfully: ${fileName}`
+              `[Job Applicants] âœ… Resume uploaded successfully: ${fileName}`
             );
           } catch (uploadErr) {
             console.error(
-              "[Job Applicants] ❌ Resume upload error:",
+              "[Job Applicants] âŒ Resume upload error:",
               uploadErr
             );
             return res.status(500).json({
@@ -7400,7 +5697,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
         if (applicantError) throw applicantError;
 
         console.log(
-          `[Job Applicants] ✅ Application created successfully with ID: ${createdApplicant.id}`
+          `[Job Applicants] âœ… Application created successfully with ID: ${createdApplicant.id}`
         );
 
         res.status(201).json({
@@ -7409,7 +5706,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
         });
       } catch (error) {
         console.error(
-          "[Job Applicants] ❌ Error in processApplication:",
+          "[Job Applicants] âŒ Error in processApplication:",
           error
         );
         res.header("Access-Control-Allow-Origin", "*");
@@ -7419,7 +5716,7 @@ app.post("/api/job-applicants", setCorsHeaders, async (req, res) => {
       }
     } // End processApplication function
   } catch (error) {
-    console.error("[Job Applicants] ❌ Error creating job applicant:", error);
+    console.error("[Job Applicants] âŒ Error creating job applicant:", error);
 
     // Ensure CORS headers are set even on error (allow all)
     res.header("Access-Control-Allow-Origin", "*");
@@ -7461,7 +5758,7 @@ app.use((error, req, res, next) => {
   res.header("Access-Control-Allow-Headers", "Content-Type");
 
   if (error instanceof multer.MulterError) {
-    console.error("[Job Applicants] ❌ Multer error:", error);
+    console.error("[Job Applicants] âŒ Multer error:", error);
     if (error.code === "LIMIT_FILE_SIZE") {
       return res.status(413).json({
         message: "File size too large. Maximum size is 10MB.",
@@ -8756,7 +7053,7 @@ app.post(
               .map((d) => d.trim())
               .filter((d) => d.length > 0);
             // Convert to bullet points format
-            documentsRequired = documents.map((doc) => `• ${doc}`).join("\n");
+            documentsRequired = documents.map((doc) => `â€¢ ${doc}`).join("\n");
           }
 
           // Parse cost
@@ -9747,7 +8044,7 @@ app.post(
         const conversionRate = rateFromOldToInr / rateFromInrToNew;
 
         // Convert base prices using the conversion rate
-        // Note: Markup formula ((price × FX_rate) + 2) × 1.15 is applied at calculation time in itinerary costing
+        // Note: Markup formula ((price Ã— FX_rate) + 2) Ã— 1.15 is applied at calculation time in itinerary costing
         // Here we only convert the base price using FX rate
         const newAdultPrice =
           Math.round((item.per_adult_cost || 0) * conversionRate * 100) / 100;
@@ -10089,11 +8386,11 @@ app.post("/api/sightseeing/generate-details", requireAuth, async (req, res) => {
                 openingHoursData.weekdayDescriptions &&
                 openingHoursData.weekdayDescriptions.length > 0
               ) {
-                // Get the first day's hours as a simple format (e.g., "Monday: 10:00 AM – 7:00 PM")
+                // Get the first day's hours as a simple format (e.g., "Monday: 10:00 AM â€“ 7:00 PM")
                 const firstDay = openingHoursData.weekdayDescriptions[0];
-                // Extract time range (e.g., "Monday: 10:00 AM – 7:00 PM" -> "10:00-19:00")
+                // Extract time range (e.g., "Monday: 10:00 AM â€“ 7:00 PM" -> "10:00-19:00")
                 const timeMatch = firstDay.match(
-                  /(\d{1,2}):(\d{2})\s*(AM|PM)\s*–\s*(\d{1,2}):(\d{2})\s*(AM|PM)/
+                  /(\d{1,2}):(\d{2})\s*(AM|PM)\s*â€“\s*(\d{1,2}):(\d{2})\s*(AM|PM)/
                 );
                 if (timeMatch) {
                   const [, startH, startM, startAMPM, endH, endM, endAMPM] =
@@ -12425,7 +10722,7 @@ app.post(
         });
       }
 
-      // Check if day already has a long attraction (≥5 hours)
+      // Check if day already has a long attraction (â‰¥5 hours)
       const hasLongAttraction = currentDayActivities.some(
         (a) => (a.average_duration_hours || 0) >= 5
       );
@@ -12650,13 +10947,13 @@ app.post("/api/admin/cleanup-pdfs", requireAuth, async (req, res) => {
 
 // --- SERVER START ---
 app.listen(PORT, () => {
-  console.log(`✅ Secure API server listening on http://localhost:${PORT}`);
+  console.log(`âœ… Secure API server listening on http://localhost:${PORT}`);
   listenForManualAssignments(); // Start listening for manual assignments.
   setupGlobalListeners(); // Start the global DB listeners (leads, assignments)
 
   // Start PDF cleanup scheduler
   scheduleDailyCleanup();
-  console.log("✅ PDF cleanup scheduler started");
+  console.log("âœ… PDF cleanup scheduler started");
 
   // TBO static data refresh disabled for academy/lead-management (tboClient removed)
 
@@ -12664,6 +10961,6 @@ app.listen(PORT, () => {
   if (WHATSAPP_TOKEN) {
     startTokenMonitoring(WHATSAPP_TOKEN, 12);
   } else {
-    console.warn("[CRM] ⚠️ WHATSAPP_TOKEN not set, token monitoring disabled");
+    console.warn("[CRM] âš ï¸ WHATSAPP_TOKEN not set, token monitoring disabled");
   }
 });
