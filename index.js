@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
@@ -587,47 +587,29 @@ function setupGlobalListeners() {
             console.log(
               `[GlobalListener] Lead ${newRec.id} status is Feedback. Checking if feedback needs to be sent...`
             );
-            console.log(
-              `[GlobalListener] Lead ${newRec.id} - notified_status: ${newRec.notified_status}`
-            );
+            try {
+              // Fetch customer for feedback
+              const { data: customer } = await supabase
+                .from("customers")
+                .select("*")
+                .eq("id", newRec.customer_id)
+                .single();
 
-            if (newRec.notified_status !== "Feedback") {
-              console.log(
-                `[GlobalListener] Lead ${newRec.id} status changed to Feedback. Sending feedback template...`
-              );
-              try {
-                // Fetch customer for feedback
-                const { data: customer } = await supabase
-                  .from("customers")
-                  .select("*")
-                  .eq("id", newRec.customer_id)
-                  .single();
-
-                if (customer) {
-                  await sendFeedbackLinkMessage(newRec, customer);
-                  // Mark as notified to prevent duplicate processing
-                  await supabase
-                    .from("leads")
-                    .update({ notified_status: "Feedback" })
-                    .eq("id", newRec.id);
-                  console.log(
-                    `[GlobalListener] âœ… Feedback template sent for lead ${newRec.id}`
-                  );
-                } else {
-                  console.log(
-                    `[GlobalListener] âš ï¸ Customer not found for lead ${newRec.id}. Cannot send feedback.`
-                  );
-                }
-              } catch (feedbackError) {
-                console.error(
-                  `[GlobalListener] Error sending feedback template for lead ${newRec.id}:`,
-                  feedbackError.message,
-                  feedbackError.stack
+              if (customer) {
+                await sendFeedbackLinkMessage(newRec, customer);
+                console.log(
+                  `[GlobalListener] Feedback check complete for lead ${newRec.id}`
+                );
+              } else {
+                console.log(
+                  `[GlobalListener] âš ï¸ Customer not found for lead ${newRec.id}. Cannot send feedback.`
                 );
               }
-            } else {
-              console.log(
-                `[GlobalListener] Lead ${newRec.id} already notified for Feedback status. Skipping.`
+            } catch (feedbackError) {
+              console.error(
+                `[GlobalListener] Error sending feedback template for lead ${newRec.id}:`,
+                feedbackError.message,
+                feedbackError.stack
               );
             }
           }
@@ -2156,7 +2138,9 @@ async function sendDailyProductivitySummary() {
                 `[DailySummary] âš ï¸ Action required: Generate a new token and update WHATSAPP_TOKEN environment variable`
               );
             }
-            console.warn(`[DailySummary] âš ï¸ Template failed. Using fallback.`);
+            console.warn(
+              `[DailySummary] âš ï¸ Template failed. Using fallback.`
+            );
             throw new Error(`Template failed: ${JSON.stringify(apiResult)}`);
           }
         } catch (templateError) {
@@ -2764,7 +2748,7 @@ const checkLeadUpdatesAndNotify = async () => {
     const { data: recentLeads, error: leadsError } = await supabase
       .from("leads")
       .select(
-        "id, status, notified_status, customer_id, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name))"
+        "id, status, activity, customer_id, customer:customers(id, first_name, last_name, email, phone), all_assignees:lead_assignees(staff(id, name))"
       )
       .gt("last_updated", fiveMinutesAgo);
 
@@ -2792,34 +2776,15 @@ const checkLeadUpdatesAndNotify = async () => {
         // Mark other significant statuses as notified (but don't send messages)
         // Note: significantStatuses removed - this block is now handled by specific status checks below
 
-        // Mark Processing status as notified (but don't send messages)
-        if (
-          lead.status === "Processing" &&
-          lead.notified_status !== "Processing"
-        ) {
+        // Handle Feedback status - send feedback template (duplicate prevention via activity in sendFeedbackLinkMessage)
+        if (lead.status === "Feedback") {
           console.log(
-            `[UpdateNotifier] Lead ${lead.id} status changed to Processing. Marking as notified (no customer message).`
-          );
-          await supabase
-            .from("leads")
-            .update({ notified_status: "Processing" })
-            .eq("id", lead.id);
-        }
-
-        // Handle Feedback status - send feedback template
-        if (lead.status === "Feedback" && lead.notified_status !== "Feedback") {
-          console.log(
-            `[UpdateNotifier] Lead ${lead.id} status is Feedback. Sending feedback template...`
+            `[UpdateNotifier] Lead ${lead.id} status is Feedback. Sending feedback template if not already sent...`
           );
           try {
             await sendFeedbackLinkMessage(lead, customer);
-            // Mark as notified to prevent duplicate processing
-            await supabase
-              .from("leads")
-              .update({ notified_status: "Feedback" })
-              .eq("id", lead.id);
             console.log(
-              `[UpdateNotifier] âœ… Feedback template sent for lead ${lead.id}`
+              `[UpdateNotifier] Feedback check complete for lead ${lead.id}`
             );
           } catch (feedbackError) {
             console.error(
@@ -4760,8 +4725,13 @@ app.post("/api/feedback/send", async (req, res) => {
       throw new Error("Customer not found for this lead.");
     }
 
-    // Check if feedback was already sent
-    if (lead.notified_status === "Feedback") {
+    // Check if feedback was already sent (via activity; sendFeedbackLinkMessage also checks this)
+    const feedbackSent = (lead.activity || []).some(
+      (act) =>
+        act.type === "Feedback Request Sent" &&
+        act.description?.includes("Feedback request sent to customer")
+    );
+    if (feedbackSent) {
       console.log(
         `[Feedback Endpoint] Feedback already sent for lead ${leadId}. Skipping.`
       );
@@ -4773,12 +4743,6 @@ app.post("/api/feedback/send", async (req, res) => {
 
     // Send feedback template
     await sendFeedbackLinkMessage(lead, lead.customer);
-
-    // Mark as notified to prevent duplicate processing
-    await supabase
-      .from("leads")
-      .update({ notified_status: "Feedback" })
-      .eq("id", leadId);
 
     console.log(
       `[Feedback Endpoint] âœ… Feedback template sent successfully for lead ${leadId}`
@@ -10961,6 +10925,8 @@ app.listen(PORT, () => {
   if (WHATSAPP_TOKEN) {
     startTokenMonitoring(WHATSAPP_TOKEN, 12);
   } else {
-    console.warn("[CRM] âš ï¸ WHATSAPP_TOKEN not set, token monitoring disabled");
+    console.warn(
+      "[CRM] âš ï¸ WHATSAPP_TOKEN not set, token monitoring disabled"
+    );
   }
 });
