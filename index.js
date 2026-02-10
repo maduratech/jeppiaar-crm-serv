@@ -5228,7 +5228,6 @@ app.post("/api/email/send-supplier-request", async (req, res) => {
   }
 });
 
-
 // Assignment notifications: POST /api/lead/notify-assignment (Realtime subscription removed).
 
 // Phone status check endpoint is now in whatsapp-crm.js
