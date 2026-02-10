@@ -4085,6 +4085,186 @@ app.post("/api/lead/notify-immediate", async (req, res) => {
   }
 });
 
+// --- ASSIGNMENT NOTIFICATION API ---
+app.post("/api/lead/notify-assignment", requireAuth, async (req, res) => {
+  try {
+    const { leadId, staffIds: rawStaffIds } = req.body;
+    if (!leadId) {
+      return res.status(400).json({ message: "leadId is required." });
+    }
+
+    const { data: lead, error: leadError } = await supabase
+      .from("leads")
+      .select(
+        "*, customer:customers(*), all_assignees:lead_assignees(staff(*))"
+      )
+      .eq("id", leadId)
+      .single();
+
+    if (leadError || !lead) {
+      return res
+        .status(404)
+        .json({ message: "Lead not found.", error: leadError?.message });
+    }
+
+    const customer = lead.customer;
+    if (!customer) {
+      return res
+        .status(404)
+        .json({ message: "Customer not found for this lead." });
+    }
+
+    const assignees = lead.all_assignees || [];
+    const staffIds =
+      Array.isArray(rawStaffIds) && rawStaffIds.length > 0
+        ? rawStaffIds.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id))
+        : assignees.map((a) => a.staff?.id).filter(Boolean);
+
+    if (staffIds.length === 0) {
+      return res.status(200).json({
+        message: "No staff to notify.",
+        sentTo: [],
+        skipped: [],
+      });
+    }
+
+    const activity = lead.activity || [];
+    const sentTo = [];
+    const skipped = [];
+    const toSendInBackground = [];
+
+    for (const staffId of staffIds) {
+      const assigneeEntry = assignees.find((a) => a.staff?.id === staffId);
+      const staff = assigneeEntry?.staff;
+      if (!staff) {
+        skipped.push({
+          staffId,
+          name: null,
+          reason: "Staff not in current assignees for this lead.",
+        });
+        continue;
+      }
+
+      const alreadySent = activity.some(
+        (act) =>
+          act.type === "Summary Sent to Staff" &&
+          act.description?.includes(staff.name)
+      );
+      if (alreadySent) {
+        skipped.push({
+          staffId: staff.id,
+          name: staff.name,
+          reason: "Notification already sent for this staff on this lead.",
+        });
+        continue;
+      }
+
+      const isPrimary = assignees.length === 1;
+      if (isPrimary) {
+        sentTo.push({ staffId: staff.id, name: staff.name });
+        toSendInBackground.push({
+          lead,
+          customer,
+          staff,
+          type: "primary",
+          primaryName: null,
+          specificService: null,
+        });
+      } else {
+        const primaryAssignee = assignees[0]?.staff;
+        if (!primaryAssignee) {
+          skipped.push({
+            staffId: staff.id,
+            name: staff.name,
+            reason: "Could not determine primary assignee.",
+          });
+          continue;
+        }
+        const primaryServices = new Set(primaryAssignee.services || []);
+        const secondaryServices = new Set(staff.services || []);
+        const leadServices = new Set(lead.services || []);
+        let specificService = null;
+        for (const service of secondaryServices) {
+          if (leadServices.has(service) && !primaryServices.has(service)) {
+            specificService = service;
+            break;
+          }
+        }
+        if (!specificService) {
+          specificService =
+            (staff.services || []).find((s) => leadServices.has(s)) ||
+            "a task for this lead";
+        }
+        sentTo.push({ staffId: staff.id, name: staff.name });
+        toSendInBackground.push({
+          lead,
+          customer,
+          staff,
+          type: "secondary",
+          primaryName: primaryAssignee.name,
+          specificService,
+        });
+      }
+    }
+
+    // Fire-and-forget: send WhatsApp in background so response returns immediately
+    if (toSendInBackground.length > 0) {
+      setImmediate(async () => {
+        for (const item of toSendInBackground) {
+          try {
+            if (item.type === "primary") {
+              await sendStaffAssignmentNotification(
+                item.lead,
+                item.customer,
+                item.staff,
+                "primary"
+              );
+            } else {
+              await sendStaffAssignmentNotification(
+                item.lead,
+                item.customer,
+                item.staff,
+                "secondary",
+                item.primaryName,
+                item.specificService
+              );
+            }
+          } catch (notifError) {
+            console.error(
+              `[Notify Assignment] Error sending to ${item.staff.name}:`,
+              notifError.message
+            );
+            await logLeadActivity(
+              item.lead.id,
+              "WhatsApp Failed",
+              `Failed to send assignment notification to staff "${item.staff.name}": ${notifError.message}`,
+              "System"
+            );
+          }
+        }
+      });
+    }
+
+    res.status(200).json({
+      message:
+        sentTo.length > 0
+          ? `Assignment notification(s) queued for ${sentTo.length} staff.`
+          : "No new notifications (all skipped).",
+      sentTo,
+      skipped,
+    });
+  } catch (error) {
+    console.error(
+      "Error in /api/lead/notify-assignment:",
+      error.message,
+      error.stack
+    );
+    res
+      .status(500)
+      .json({ message: error.message || "Internal server error." });
+  }
+});
+
 app.post("/api/invoicing/send-whatsapp", async (req, res) => {
   try {
     const { invoiceId } = req.body;
@@ -5193,18 +5373,17 @@ const listenForManualAssignments = () => {
             `[Realtime] âœ… Found staff: ${newlyAssignedStaff.name} (Phone: ${newlyAssignedStaff.phone}), Customer: ${customer.first_name} ${customer.last_name}`
           );
 
-          // Check if we've already sent a notification for this assignment recently
-          // by checking the lead's activity log (check by staff name, not ID)
-          const recentNotification = (lead.activity || []).find(
+          // Check if we've already sent a notification for this staff on this lead (ever)
+          // so we don't duplicate if API already sent or this is a replay
+          const alreadySentToStaff = (lead.activity || []).some(
             (act) =>
               act.type === "Summary Sent to Staff" &&
-              act.description?.includes(newlyAssignedStaff.name) &&
-              new Date(act.timestamp) > new Date(Date.now() - 60000) // Last 60 seconds
+              act.description?.includes(newlyAssignedStaff.name)
           );
 
-          if (recentNotification) {
+          if (alreadySentToStaff) {
             console.log(
-              `[Realtime] Notification already sent to ${newlyAssignedStaff.name} for lead ${lead_id} in last 60 seconds. Skipping duplicate.`
+              `[Realtime] Notification already sent to ${newlyAssignedStaff.name} for lead ${lead_id}. Skipping duplicate.`
             );
             return;
           }
