@@ -1667,7 +1667,75 @@ app.post("/api/settings/:key", requireAuth, async (req, res) => {
   }
 });
 
-// Lead bulk-delete: done from CRM via Supabase client (cascade + block paid invoices in Leads.tsx)
+// Lead bulk-delete: Super Admin only; uses service role so RLS does not block cascade (avoids "only removes assigned staff")
+app.post("/api/leads/bulk-delete", requireAuth, async (req, res) => {
+  try {
+    if (req.user?.role !== "Super Admin") {
+      return res
+        .status(403)
+        .json({ message: "Only Super Admin can delete leads." });
+    }
+    const { leadIds } = req.body || {};
+    if (!Array.isArray(leadIds) || leadIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "leadIds array is required and must not be empty." });
+    }
+    const ids = leadIds
+      .map((id) => Number(id))
+      .filter((n) => !Number.isNaN(n) && n > 0);
+    if (ids.length === 0) {
+      return res.status(400).json({ message: "Valid lead IDs are required." });
+    }
+
+    const { data: blockingInvoices } = await supabase
+      .from("invoices")
+      .select("id, lead_id, invoice_number, status")
+      .in("lead_id", ids)
+      .in("status", ["PARTIALLY PAID", "PAID"]);
+    if (blockingInvoices && blockingInvoices.length > 0) {
+      return res.status(400).json({
+        message: `Cannot delete lead(s). Lead #${blockingInvoices[0].lead_id} has a paid/partially paid invoice (${blockingInvoices[0].invoice_number}). Please handle the invoice first.`,
+      });
+    }
+
+    const cascadeOrder = [
+      "whatsapp_messages",
+      "lead_costings",
+      "payments",
+      "invoices",
+      "lead_assignees",
+      "lead_suppliers",
+    ];
+    for (const table of cascadeOrder) {
+      const { error } = await supabase.from(table).delete().in("lead_id", ids);
+      if (error) {
+        if (
+          error.code === "PGRST205" ||
+          (error.message && error.message.includes("Could not find the table"))
+        ) {
+          continue;
+        }
+        throw error;
+      }
+    }
+    const { error: leadsError } = await supabase
+      .from("leads")
+      .delete()
+      .in("id", ids);
+    if (leadsError) throw leadsError;
+
+    return res.json({
+      deleted: ids.length,
+      message: `${ids.length} lead(s) and associated data deleted successfully.`,
+    });
+  } catch (err) {
+    console.error("[bulk-delete leads]", err);
+    return res
+      .status(500)
+      .json({ message: err?.message || "Failed to delete leads." });
+  }
+});
 
 app.post("/api/customers/bulk-delete", requireAuth, async (req, res) => {
   try {
