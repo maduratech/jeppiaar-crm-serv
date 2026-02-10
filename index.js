@@ -5543,9 +5543,17 @@ const listenForManualAssignments = () => {
         retryCount++;
         const errorMessage =
           err?.message ||
-          err?.toString() ||
-          JSON.stringify(err) ||
+          err?.error?.message ||
+          (typeof err?.error === "string" ? err.error : null) ||
+          err?.toString?.() ||
+          (err && typeof err === "object" ? JSON.stringify(err) : null) ||
           "Unknown error";
+        if (errorMessage === "Unknown error" && err) {
+          console.warn(
+            "[Realtime] Raw error object (for debugging):",
+            err
+          );
+        }
 
         // Only log errors that aren't the known "mismatch" error (to reduce noise)
         if (
