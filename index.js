@@ -5372,7 +5372,9 @@ const listenForManualAssignments = () => {
         if (
           !errorMessage.includes("mismatch between server and client bindings")
         ) {
-          const isUnknownRealtime = /unknown error|Unknown error/i.test(errorMessage);
+          const isUnknownRealtime = /unknown error|Unknown error/i.test(
+            errorMessage
+          );
           if (isUnknownRealtime && retryCount <= 2) {
             console.warn(
               `[Realtime] Could not subscribe to lead_assignees (attempt ${retryCount}/${MAX_RETRIES}). If Realtime is not enabled for this table in Supabase, assignment notifications will be skipped. Error:`,
@@ -5383,27 +5385,33 @@ const listenForManualAssignments = () => {
               `[Realtime] Failed to subscribe to lead assignee changes (attempt ${retryCount}/${MAX_RETRIES}):`,
               errorMessage
             );
-        } else {
-          // Log mismatch error less frequently (every 5th attempt)
-          if (retryCount % 5 === 0) {
-            console.warn(
-              `[Realtime] âš ï¸ Realtime subscription mismatch error (attempt ${retryCount}/${MAX_RETRIES}). This is a known Supabase issue and may resolve automatically.`
-            );
-          }
-        }
-
-        // Retry with exponential backoff (5s, 10s, 20s, etc., max 30s)
-        const retryDelay = Math.min(5000 * Math.pow(2, retryCount - 1), 30000);
-        setTimeout(() => {
-          if (retryCount < MAX_RETRIES) {
-            if (retryCount <= 2 || retryCount % 3 === 0) {
-              console.log(
-                `[Realtime] Retrying subscription to lead assignee changes... (attempt ${retryCount + 1}/${MAX_RETRIES})`
+          } else {
+            // Log mismatch error less frequently (every 5th attempt)
+            if (retryCount % 5 === 0) {
+              console.warn(
+                `[Realtime] âš ï¸ Realtime subscription mismatch error (attempt ${retryCount}/${MAX_RETRIES}). This is a known Supabase issue and may resolve automatically.`
               );
             }
-            listenForManualAssignments();
           }
-        }, retryDelay);
+
+          // Retry with exponential backoff (5s, 10s, 20s, etc., max 30s)
+          const retryDelay = Math.min(
+            5000 * Math.pow(2, retryCount - 1),
+            30000
+          );
+          setTimeout(() => {
+            if (retryCount < MAX_RETRIES) {
+              if (retryCount <= 2 || retryCount % 3 === 0) {
+                console.log(
+                  `[Realtime] Retrying subscription to lead assignee changes... (attempt ${
+                    retryCount + 1
+                  }/${MAX_RETRIES})`
+                );
+              }
+              listenForManualAssignments();
+            }
+          }, retryDelay);
+        }
       }
     });
   return channel;
