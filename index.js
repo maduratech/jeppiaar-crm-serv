@@ -307,21 +307,31 @@ const requireAuth = async (req, res, next) => {
         JSON.stringify(authError) ||
         "No user";
 
-      // Reduce log noise for connection timeout errors (network issues)
-      if (
+      // Reduce log noise for expected/transient auth failures
+      const isConnectionError =
         errorMessage.includes("fetch failed") ||
         errorMessage.includes("Connect Timeout") ||
-        errorMessage.includes("UND_ERR_CONNECT_TIMEOUT")
-      ) {
-        // Only log connection errors occasionally to reduce spam
+        errorMessage.includes("UND_ERR_CONNECT_TIMEOUT");
+      const isSessionMissing =
+        errorMessage.includes("Auth session missing") ||
+        errorMessage.includes("session missing") ||
+        errorMessage.includes("invalid claim") ||
+        errorMessage.includes("JWT expired");
+
+      if (isConnectionError) {
         if (Math.random() < 0.1) {
-          // Log 10% of connection errors
           console.warn(
             "[Auth Middleware] Connection timeout to Supabase (network issue). This may be temporary."
           );
         }
+      } else if (isSessionMissing) {
+        // Expected when token expired or request has no valid session - log at debug level only
+        if (process.env.NODE_ENV === "development" && Math.random() < 0.05) {
+          console.warn(
+            "[Auth Middleware] Token validation failed (expired/missing session). Request rejected with 401."
+          );
+        }
       } else {
-        // Log other auth errors normally
         console.error(
           "[Auth Middleware] Token validation error:",
           errorMessage
@@ -5362,10 +5372,17 @@ const listenForManualAssignments = () => {
         if (
           !errorMessage.includes("mismatch between server and client bindings")
         ) {
-          console.error(
-            `[Realtime] âŒ Failed to subscribe to lead assignee changes (attempt ${retryCount}/${MAX_RETRIES}):`,
-            errorMessage
-          );
+          const isUnknownRealtime = /unknown error|Unknown error/i.test(errorMessage);
+          if (isUnknownRealtime && retryCount <= 2) {
+            console.warn(
+              `[Realtime] Could not subscribe to lead_assignees (attempt ${retryCount}/${MAX_RETRIES}). If Realtime is not enabled for this table in Supabase, assignment notifications will be skipped. Error:`,
+              errorMessage
+            );
+          } else if (!isUnknownRealtime) {
+            console.error(
+              `[Realtime] Failed to subscribe to lead assignee changes (attempt ${retryCount}/${MAX_RETRIES}):`,
+              errorMessage
+            );
         } else {
           // Log mismatch error less frequently (every 5th attempt)
           if (retryCount % 5 === 0) {
@@ -5379,11 +5396,11 @@ const listenForManualAssignments = () => {
         const retryDelay = Math.min(5000 * Math.pow(2, retryCount - 1), 30000);
         setTimeout(() => {
           if (retryCount < MAX_RETRIES) {
-            console.log(
-              `[Realtime] Retrying subscription to lead assignee changes... (attempt ${
-                retryCount + 1
-              }/${MAX_RETRIES})`
-            );
+            if (retryCount <= 2 || retryCount % 3 === 0) {
+              console.log(
+                `[Realtime] Retrying subscription to lead assignee changes... (attempt ${retryCount + 1}/${MAX_RETRIES})`
+              );
+            }
             listenForManualAssignments();
           }
         }, retryDelay);
